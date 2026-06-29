@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+
+# OS / editor cruft
+.DS_Store
+*.swp
+
+# experiment artifacts
+experiments/
+runs/
+*.pth
+*.ckpt
+*.log
+
+# datasets are large; keep them out of git
+data/
+datasets/raw/
+
+# environments
+.venv/
+venv/
+.env

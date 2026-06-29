@@ -1,0 +1,50 @@
+name: srcnn_df2k_x4
+
+# Stage 1: pretrain SRCNN on DF2K synthetic bicubic LR-HR pairs.
+# SRCNN works on a pre-upscaled LR, so every dataset sets pre_upscale: true.
+
+model:
+  name: SRCNN
+  args: { scale: 4 }
+
+train:
+  epochs: 1000              # cap cao; early stopping sẽ tự dừng khi hội tụ
+  batch_size: 16
+  num_workers: 4
+  loss: charbonnier
+  perceptual_weight: 0.0
+  lr: 1.0e-4
+  lr_step: 200
+  lr_gamma: 0.5
+  val_every: 10
+  early_stop_patience: 10   # dừng nếu psnr không cải thiện sau 10 lần validation
+  early_stop_metric: psnr
+
+train_dataset:
+  name: DIV2K
+  args:
+    hr_dir:
+      - data/DIV2K/DIV2K_train_HR
+      - data/Flickr2K/Flickr2K_HR     # optional; skipped if missing
+    scale: 4
+    patch_size: 128
+    pre_upscale: true
+    degradation: bicubic
+    augment: true
+    repeat: 20
+
+val_datasets:
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: true } }
+
+val_metrics: [psnr, ssim]
+
+test_datasets:
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: true } }
+
+metrics:
+  - { name: psnr,  args: { crop: 4, y_channel: true } }
+  - { name: ssim,  args: { crop: 4, y_channel: true } }
+  - { name: lpips, args: { net: alex } }
+  - niqe
+  - musiq
+  - clipiqa

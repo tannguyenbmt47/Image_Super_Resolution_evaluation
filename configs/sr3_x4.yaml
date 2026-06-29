@@ -1,0 +1,54 @@
+name: sr3_x4
+
+# SR3 upsamples LR internally and diffuses the HR image, so datasets keep
+# pre_upscale: false. Patch size must be divisible by 2**(len(channel_mults)-1).
+model:
+  name: SR3
+  args:
+    scale: 4
+    base_channels: 64
+    channel_mults: [1, 2, 4, 8]
+    num_res_blocks: 2
+    attn_levels: [2, 3]
+    timesteps: 1000
+    beta_schedule: linear
+    loss_type: l1
+    sampling_timesteps: 100   # DDIM steps at eval; lower = faster, rougher
+    ddim_eta: 0.0
+
+train:
+  epochs: 2000              # cap cao; early stopping sẽ tự dừng khi hội tụ
+  batch_size: 3            # ~3.5GB on 8GB GPU (half-GPU budget)
+  num_workers: 4
+  lr: 1.0e-4
+  lr_step: 600
+  lr_gamma: 0.5
+  val_every: 50               # sampling is slow; validate sparingly
+  early_stop_patience: 5
+  early_stop_metric: psnr
+
+train_dataset:
+  name: DIV2K
+  args:
+    hr_dir: data/DIV2K/DIV2K_train_HR
+    scale: 4
+    patch_size: 160           # divisible by 8
+    pre_upscale: false
+    augment: true
+    repeat: 20
+
+val_datasets:
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4 } }
+
+val_metrics: [psnr, ssim]
+
+test_datasets:
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4 } }
+
+metrics:
+  - { name: psnr,  args: { crop: 4, y_channel: true } }
+  - { name: ssim,  args: { crop: 4, y_channel: true } }
+  - { name: lpips, args: { net: alex } }
+  - niqe
+  - musiq
+  - clipiqa

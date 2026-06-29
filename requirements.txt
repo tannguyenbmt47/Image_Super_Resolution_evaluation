@@ -1,0 +1,12 @@
+torch>=2.0
+torchvision>=0.15
+numpy
+pyyaml
+tqdm
+pillow
+# optional, used by the LPIPS metric (perceptual quality)
+lpips
+# no-reference metrics: NIQE / MUSIQ / CLIPIQA
+pyiqa
+# tests
+pytest
