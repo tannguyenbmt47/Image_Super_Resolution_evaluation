@@ -8,5 +8,6 @@ pillow
 lpips
 # no-reference metrics: NIQE / MUSIQ / CLIPIQA
 pyiqa
+numba>=0.59
 # tests
 pytest

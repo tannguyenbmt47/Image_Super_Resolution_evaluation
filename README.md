@@ -59,8 +59,8 @@ Checkpoints and validation logs go to `experiments/<name>/`.
 
 ```bash
 .venv/bin/python scripts/evaluate.py \
-    --config configs/sr3_df2k_x4.yaml \
-    --checkpoint experiments/sr3_df2k_x4/last.pth
+    --config configs/srcnn_df2k_x4.yaml \
+    --checkpoint experiments/srcnn_df2k_x4/last.pth
 ```
 
 Prints a `dataset × metric` table.
