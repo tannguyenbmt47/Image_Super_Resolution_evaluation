@@ -127,7 +127,7 @@ class Trainer:
             # feed-forward models use a pixel loss on the output;
             # GAN models (SRGAN) return {"g_loss", "d_loss"}.
             if hasattr(self._base, "compute_loss"):
-                loss_out = self.model.compute_loss(lr, hr)
+                loss_out = self._base.compute_loss(lr, hr)
                 if isinstance(loss_out, dict):
                     # GAN training: separate generator and discriminator steps
                     g_loss = loss_out["g_loss"]
@@ -164,7 +164,7 @@ class Trainer:
     def _validate(self, epoch):
         if not self.val_sets or not self.metrics:
             return
-        results = evaluate_model(self.model, self.val_sets, self.metrics, self.device)
+        results = evaluate_model(self._base, self.val_sets, self.metrics, self.device)
         for ds_name, scores in results.items():
             line = ", ".join(f"{m}={v:.4f}" for m, v in scores.items())
             print(f"[val/{ds_name}] {line}")
