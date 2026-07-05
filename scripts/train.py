@@ -31,6 +31,8 @@ def main():
     parser.add_argument("--pretrained", default=None,
                         help="checkpoint to initialise from (stage-2 fine-tuning)")
     parser.add_argument("--epochs", type=int, default=None, help="override train.epochs")
+    parser.add_argument("--batch_size", type=int, default=None, help="override train.batch_size")
+    parser.add_argument("--num_workers", type=int, default=None, help="override train.num_workers")
     parser.add_argument("--repeat", type=int, default=None,
                         help="override train_dataset.args.repeat (use 1 for quick runs)")
     parser.add_argument("--no-val", action="store_true", help="skip in-training validation")
@@ -40,6 +42,10 @@ def main():
     out_dir = args.out or f"experiments/{cfg.get('name', Path(args.config).stem)}"
     if args.epochs is not None:
         cfg.train["epochs"] = args.epochs
+    if args.batch_size is not None:
+        cfg.train["batch_size"] = args.batch_size
+    if args.num_workers is not None:
+        cfg.train["num_workers"] = args.num_workers
     if args.repeat is not None:
         cfg.train_dataset.args["repeat"] = args.repeat
 
