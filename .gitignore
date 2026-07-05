@@ -18,6 +18,9 @@ runs/
 data/
 datasets/raw/
 
+# downloaded pretrained checkpoints (scripts/download_weights.sh)
+weights/
+
 # environments
 .venv/
 venv/

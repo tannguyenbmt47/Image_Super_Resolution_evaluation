@@ -41,7 +41,13 @@ def main():
     cfg = load_config(args.config)
     model = build_model(cfg.model).to(args.device)
     state = torch.load(args.checkpoint, map_location=args.device)
-    model.load_state_dict(state["model"] if "model" in state else state)
+    # Unwrap: this repo's Trainer saves {"model": ...}; official release
+    # checkpoints (e.g. SwinIR) use {"params": ...} or {"params_ema": ...}.
+    for key in ("model", "params_ema", "params"):
+        if key in state:
+            state = state[key]
+            break
+    model.load_state_dict(state)
 
     datasets = {d.get("label", d.name): build_dataset(d) for d in cfg.test_datasets}
     if args.limit:

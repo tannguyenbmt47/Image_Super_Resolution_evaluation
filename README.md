@@ -65,16 +65,37 @@ Checkpoints and validation logs go to `experiments/<name>/`.
 
 Prints a `dataset × metric` table.
 
+For a shareable bundle — a Markdown report with per-image + overall metrics, a
+CSV, and every model input/output image zipped — use `evaluate_report.py` with
+the same arguments; outputs land in `results/<config name>/`:
+
+```bash
+.venv/bin/python scripts/evaluate_report.py \
+    --config configs/swinir_x4.yaml \
+    --checkpoint weights/001_classicalSR_DF2K_s64w8_SwinIR-M_x4.pth
+```
+
 ## Models
 
-| Model   | Type                  | Notes                                              |
-|---------|-----------------------|----------------------------------------------------|
-| SRCNN   | feed-forward (pixel)  | classic 3-layer baseline; needs `pre_upscale: true`|
-| SR3     | conditional diffusion | diffuses HR conditioned on up(LR)                  |
+| Model   | Type                     | Notes                                              |
+|---------|--------------------------|----------------------------------------------------|
+| SRCNN   | feed-forward (pixel)     | classic 3-layer baseline; needs `pre_upscale: true`|
+| SR3     | conditional diffusion    | diffuses HR conditioned on up(LR)                  |
+| SwinIR  | feed-forward transformer | official arch, evaluated with released DF2K weights|
 
 SR3 trains on a noise-prediction loss and produces SR by iterative DDIM sampling —
 evaluation is much slower than the feed-forward SRCNN. Tune `sampling_timesteps`
 in the config to trade speed for quality.
+
+SwinIR is included as a *published reference point*: `src/models/swinir_arch.py`
+vendors the official architecture verbatim, so the authors' released checkpoint
+loads directly — no training required.
+
+```bash
+bash scripts/download_weights.sh   # -> weights/001_classicalSR_DF2K_s64w8_SwinIR-M_x4.pth
+.venv/bin/python scripts/evaluate.py --config configs/swinir_x4.yaml \
+    --checkpoint weights/001_classicalSR_DF2K_s64w8_SwinIR-M_x4.pth
+```
 
 ## Metrics
 

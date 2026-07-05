@@ -16,7 +16,9 @@ class Evaluator:
         self.num_workers = num_workers
 
     @torch.no_grad()
-    def run(self, model, dataset, dataset_name: str = "test") -> dict:
+    def run(self, model, dataset, dataset_name: str = "test", on_sample=None) -> dict:
+        """Average each metric over ``dataset``. ``on_sample(name, lr, sr, scores)``,
+        when given, is called once per image (used for per-image reports)."""
         model.eval()
         loader = DataLoader(dataset, batch_size=1, shuffle=False,
                             num_workers=self.num_workers)
@@ -30,8 +32,11 @@ class Evaluator:
                 sr = model.super_resolve(lr).clamp(0, 1)
             else:
                 sr = model(lr).clamp(0, 1)
-            for name, metric in self.metrics.items():
-                totals[name] += metric(sr, hr)
+            scores = {name: metric(sr, hr) for name, metric in self.metrics.items()}
+            for name, value in scores.items():
+                totals[name] += value
+            if on_sample is not None:
+                on_sample(batch["name"][0], lr[0], sr[0], scores)
         n = len(dataset)
         return {name: total / n for name, total in totals.items()}
 

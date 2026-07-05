@@ -28,6 +28,12 @@ def to_tensor(img: Image.Image) -> torch.Tensor:
 
 def _resize(x: torch.Tensor, size, mode: str) -> torch.Tensor:
     kwargs = {} if mode == "area" else {"align_corners": False}
+    if mode in ("bicubic", "bilinear") and size[0] < x.shape[-2]:
+        # Downscaling must antialias to match the standard SR protocol
+        # (MATLAB/PIL imresize). F.interpolate aliases by default, which is
+        # out-of-distribution for models trained on standard bicubic LR and
+        # makes reported metrics incomparable with published results.
+        kwargs["antialias"] = True
     return F.interpolate(x, size=size, mode=mode, **kwargs)
 
 

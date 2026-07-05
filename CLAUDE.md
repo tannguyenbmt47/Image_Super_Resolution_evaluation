@@ -29,6 +29,16 @@ bash scripts/download_data.sh
 
 # evaluate a checkpoint -> prints dataset × metric table
 .venv/bin/python scripts/evaluate.py --config configs/sr3_df2k_x4.yaml --checkpoint experiments/sr3_df2k_x4/last.pth
+
+# SwinIR is evaluation-only with the authors' released weights (no training here)
+bash scripts/download_weights.sh
+.venv/bin/python scripts/evaluate.py --config configs/swinir_x4.yaml \
+    --checkpoint weights/001_classicalSR_DF2K_s64w8_SwinIR-M_x4.pth
+
+# like evaluate.py, but also writes results/<name>/: report.md (per-image +
+# overall metrics), per_image_metrics.csv, images.zip (LR inputs / SR outputs)
+.venv/bin/python scripts/evaluate_report.py --config configs/swinir_x4.yaml \
+    --checkpoint weights/001_classicalSR_DF2K_s64w8_SwinIR-M_x4.pth
 ```
 
 Tests (`pytest`, all CPU, ~5s):
@@ -151,7 +161,12 @@ off to `src/engine/`:
 
 - The diffusion core is a faithful but compact reimplementation of the SR3
   architecture (DDPM + conditional UNet). It is not a checkpoint-compatible port of
-  any official repo, so don't expect to load their pretrained weights.
+  any official repo, so don't expect to load their pretrained weights. **SwinIR is
+  the deliberate exception**: `src/models/swinir_arch.py` vendors the official
+  architecture verbatim (timm helpers inlined) precisely so the released
+  checkpoints load with `strict=True` — don't refactor that file; adapt in
+  `src/models/swinir.py` instead. `evaluate.py` unwraps both this repo's
+  `{"model": ...}` checkpoints and official `{"params"|"params_ema": ...}` ones.
 - Diffusion evaluation is slow (sampling). For full benchmark sweeps prefer GPU and
   a small `sampling_timesteps`; the engine has no EMA or mixed-precision yet, both of
   which materially help diffusion training if you add them.

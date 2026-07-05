@@ -1,0 +1,29 @@
+name: swinir_x4
+
+# Evaluation-only config: SwinIR-M (classical SR, x4) with the authors' released
+# DF2K-pretrained weights. SRCNN/SR3 are trained in-house; SwinIR serves as a
+# published transformer reference point, so there is no train section here.
+#
+#   bash scripts/download_weights.sh   # -> weights/001_classicalSR_DF2K_s64w8_SwinIR-M_x4.pth
+#   .venv/bin/python scripts/evaluate.py --config configs/swinir_x4.yaml \
+#       --checkpoint weights/001_classicalSR_DF2K_s64w8_SwinIR-M_x4.pth
+#
+# SwinIR upscales internally, so every dataset sets pre_upscale: false. Its window
+# attention is local (8x8 windows), so full-size DIV2K-Val images fit on a GPU;
+# add max_hr: 256 to the dataset args to match the SR3 crop protocol or to keep
+# CPU runs / small GPUs feasible.
+
+model:
+  name: SwinIR
+  args: { scale: 4 }
+
+test_datasets:
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false } }
+
+metrics:
+  - { name: psnr,  args: { crop: 4, y_channel: true } }
+  - { name: ssim,  args: { crop: 4, y_channel: true } }
+  - { name: lpips, args: { net: alex } }
+  - niqe
+  - musiq
+  - clipiqa
