@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 import torch
+from torch.nn import DataParallel
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -42,6 +43,8 @@ def main():
     model = build_model(cfg.model).to(args.device)
     state = torch.load(args.checkpoint, map_location=args.device)
     model.load_state_dict(state["model"] if "model" in state else state)
+    if args.device.startswith("cuda") and torch.cuda.device_count() > 1:
+        model = DataParallel(model)
 
     datasets = {d.get("label", d.name): build_dataset(d) for d in cfg.test_datasets}
     if args.limit:

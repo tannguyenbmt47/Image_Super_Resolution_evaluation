@@ -16,6 +16,7 @@ _LOWER_IS_BETTER = {"lpips", "niqe"}
 from pathlib import Path
 
 import torch
+from torch.nn import DataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -26,8 +27,11 @@ from .evaluator import evaluate_model
 class Trainer:
     def __init__(self, model, train_set, cfg, device="cuda",
                  val_sets=None, metrics=None, out_dir="experiments/run"):
-        self.model = model.to(device)
         self.device = device
+        self.model = model.to(device)
+        self._parallel = device.startswith("cuda") and torch.cuda.device_count() > 1
+        if self._parallel:
+            self.model = DataParallel(self.model)
         self.cfg = cfg
         self.val_sets = val_sets or {}
         self.metrics = metrics or {}
@@ -61,6 +65,10 @@ class Trainer:
         self.no_improve = 0
         self.should_stop = False
 
+    @property
+    def _base(self):
+        return self.model.module if self._parallel else self.model
+
     def train(self):
         val_every = self.cfg.get("val_every", 10)
         for epoch in range(1, self.cfg.epochs + 1):
@@ -83,7 +91,7 @@ class Trainer:
             hr = batch["hr"].to(self.device)
             # Diffusion models (SR3) define their own loss on predicted noise;
             # feed-forward models use a pixel loss on the output.
-            if hasattr(self.model, "compute_loss"):
+            if hasattr(self._base, "compute_loss"):
                 loss = self.model.compute_loss(lr, hr)
             else:
                 loss = self.criterion(self.model(lr), hr)
@@ -125,6 +133,6 @@ class Trainer:
 
     def save(self, filename):
         torch.save(
-            {"model": self.model.state_dict(), "cfg": dict(self.cfg)},
+            {"model": self._base.state_dict(), "cfg": dict(self.cfg)},
             self.out_dir / filename,
         )
