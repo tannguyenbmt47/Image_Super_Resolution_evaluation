@@ -26,7 +26,9 @@ def print_table(results: dict):
     print(header)
     print("-" * len(header))
     for ds, scores in results.items():
-        row = f"{ds:<14}" + "".join(f"{scores.get(m, float('nan')):>10.4f}" for m in metric_names)
+        row = f"{ds:<14}" + "".join(
+            f"{scores.get(m, float('nan')):>10.4f}" for m in metric_names
+        )
         print(row)
 
 
@@ -37,13 +39,17 @@ def main():
     parser.add_argument(
         "--device",
         default=(
-            "cuda" if torch.cuda.is_available()
-            else "mps" if torch.backends.mps.is_available()
-            else "cpu"
+            "cuda"
+            if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available() else "cpu"
         ),
     )
-    parser.add_argument("--limit", type=int, default=0,
-                        help="evaluate only the first N images per dataset (quick checks)")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="evaluate only the first N images per dataset (quick checks)",
+    )
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -56,7 +62,10 @@ def main():
     datasets = {d.get("label", d.name): build_dataset(d) for d in cfg.test_datasets}
     if args.limit:
         from torch.utils.data import Subset
-        datasets = {k: Subset(v, range(min(args.limit, len(v)))) for k, v in datasets.items()}
+
+        datasets = {
+            k: Subset(v, range(min(args.limit, len(v)))) for k, v in datasets.items()
+        }
     metrics = build_metrics(cfg.get("metrics", ["psnr", "ssim", "lpips"]))
 
     results = evaluate_model(model, datasets, metrics, args.device)
