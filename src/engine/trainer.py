@@ -47,13 +47,14 @@ class Trainer:
         self.out_dir = Path(out_dir)
         self.out_dir.mkdir(parents=True, exist_ok=True)
 
+        use_pin = device.startswith("cuda")
         self.loader = DataLoader(
             train_set,
             batch_size=cfg.batch_size,
             shuffle=True,
             num_workers=cfg.get("num_workers", 4),
             drop_last=True,
-            pin_memory=True,
+            pin_memory=use_pin,
         )
         # feed-forward criterion (diffusion models supply their own compute_loss)
         self.criterion = build_loss(cfg).to(device)

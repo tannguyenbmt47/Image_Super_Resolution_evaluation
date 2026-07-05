@@ -20,7 +20,7 @@ model:
 
 train:
   epochs: 1000              # cap cao; early stopping sẽ tự dừng khi hội tụ
-  batch_size: 16
+  batch_size: 128
   num_workers: 4
   loss: l2                  # pixel loss for build_loss (l2 = MSE, per paper)
   perceptual_weight: 0.0    # not used (SRGAN handles its own perceptual)

@@ -26,7 +26,14 @@ def _label(d):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
-    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument(
+        "--device",
+        default=(
+            "cuda" if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available()
+            else "cpu"
+        ),
+    )
     parser.add_argument("--out", default=None, help="override output dir")
     parser.add_argument("--pretrained", default=None,
                         help="checkpoint to initialise from (stage-2 fine-tuning)")

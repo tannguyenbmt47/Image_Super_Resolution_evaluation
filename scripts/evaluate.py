@@ -34,7 +34,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
     parser.add_argument("--checkpoint", required=True)
-    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument(
+        "--device",
+        default=(
+            "cuda" if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available()
+            else "cpu"
+        ),
+    )
     parser.add_argument("--limit", type=int, default=0,
                         help="evaluate only the first N images per dataset (quick checks)")
     args = parser.parse_args()
