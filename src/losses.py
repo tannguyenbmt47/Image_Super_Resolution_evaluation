@@ -1,4 +1,4 @@
-"""Pixel and perceptual losses for feed-forward SR training.
+"""Pixel and perceptual losses for SR training.
 
 ``build_loss`` turns a training config into a single criterion module:
   - ``loss``: pixel term -- ``l1`` | ``l2`` | ``charbonnier``
@@ -7,6 +7,9 @@
 Charbonnier is a smooth L1 variant common in SR. Perceptual loss
 trades PSNR/SSIM for sharper, more realistic texture (as the plan notes).
 Diffusion models do not use this -- they define their own noise-prediction loss.
+
+SRGAN uses ``VGG54PerceptualLoss`` (relu5_4 of VGG19), which is deeper than the
+default VGG16 relu2_2 and captures more semantic/structural information.
 """
 
 import torch
@@ -34,8 +37,41 @@ class VGGPerceptualLoss(nn.Module):
         self.slice = nn.Sequential(*[vgg[i] for i in range(9)])  # up to relu2_2
         for p in self.parameters():
             p.requires_grad_(False)
-        self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
-        self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
+        self.register_buffer(
+            "mean", torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+        )
+        self.register_buffer(
+            "std", torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+        )
+
+    def forward(self, x, y):
+        x = (x - self.mean) / self.std
+        y = (y - self.mean) / self.std
+        return F.l1_loss(self.slice(x), self.slice(y))
+
+
+class VGG54PerceptualLoss(nn.Module):
+    """L1 distance in VGG19 relu5_4 feature space (inputs in [0, 1] RGB).
+
+    Used by SRGAN -- relu5_4 is deeper than VGG16 relu2_2, capturing more
+    semantic and structural information for perceptually sharper textures.
+    """
+
+    def __init__(self):
+        super().__init__()
+        from torchvision.models import VGG19_Weights, vgg19
+
+        vgg = vgg19(weights=VGG19_Weights.DEFAULT).features.eval()
+        # relu5_4 is the last relu in VGG19.features (index 36)
+        self.slice = nn.Sequential(*[vgg[i] for i in range(36)])
+        for p in self.parameters():
+            p.requires_grad_(False)
+        self.register_buffer(
+            "mean", torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+        )
+        self.register_buffer(
+            "std", torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+        )
 
     def forward(self, x, y):
         x = (x - self.mean) / self.std

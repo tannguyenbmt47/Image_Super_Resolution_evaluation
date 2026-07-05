@@ -3,7 +3,8 @@
 Minimal but complete: Adam + step LR, periodic validation via the Evaluator, and
 early stopping. The per-step loss is dispatched on the model: diffusion models
 (SR3) provide ``compute_loss(lr, hr)``; feed-forward models (SRCNN) use the
-configured pixel loss on their output.
+configured pixel loss on their output; GAN models (SRGAN) return
+``{"g_loss", "d_loss"}`` for adversarial training with separate optimizers.
 
 Checkpoints: ``best.pth`` is saved whenever the monitored validation metric
 improves, ``last.pth`` at the end. Early stopping (``early_stop_patience > 0``)
@@ -25,8 +26,16 @@ from .evaluator import evaluate_model
 
 
 class Trainer:
-    def __init__(self, model, train_set, cfg, device="cuda",
-                 val_sets=None, metrics=None, out_dir="experiments/run"):
+    def __init__(
+        self,
+        model,
+        train_set,
+        cfg,
+        device="cuda",
+        val_sets=None,
+        metrics=None,
+        out_dir="experiments/run",
+    ):
         self.device = device
         self.model = model.to(device)
         self._parallel = device.startswith("cuda") and torch.cuda.device_count() > 1
@@ -48,11 +57,24 @@ class Trainer:
         )
         # feed-forward criterion (diffusion models supply their own compute_loss)
         self.criterion = build_loss(cfg).to(device)
-        self.optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
+        # Generator optimizer (covers all params for non-GAN models;
+        # for GAN models, only generator params are used)
+        gen_params = (
+            self._base.generator.parameters()
+            if hasattr(self._base, "generator")
+            else model.parameters()
+        )
+        self.optimizer = torch.optim.Adam(gen_params, lr=cfg.lr)
         self.scheduler = torch.optim.lr_scheduler.StepLR(
             self.optimizer,
             step_size=cfg.get("lr_step", 200),
             gamma=cfg.get("lr_gamma", 0.5),
+        )
+        # Discriminator optimizer (GAN models only)
+        self.d_optimizer = (
+            self._build_d_optimizer(cfg)
+            if hasattr(self._base, "discriminator")
+            else None
         )
         self.best = {}
 
@@ -69,6 +91,15 @@ class Trainer:
     def _base(self):
         return self.model.module if self._parallel else self.model
 
+    def _build_d_optimizer(self, cfg):
+        """Build discriminator optimizer for GAN training."""
+        d_cfg = cfg.get("discriminator", {}) or {}
+        return torch.optim.Adam(
+            self._base.discriminator.parameters(),
+            lr=d_cfg.get("lr", cfg.get("d_lr", 1e-4)),
+            betas=(d_cfg.get("beta1", 0.9), d_cfg.get("beta2", 0.999)),
+        )
+
     def train(self):
         val_every = self.cfg.get("val_every", 10)
         for epoch in range(1, self.cfg.epochs + 1):
@@ -77,8 +108,10 @@ class Trainer:
             if epoch % val_every == 0 or epoch == self.cfg.epochs:
                 self._validate(epoch)
                 if self.should_stop:
-                    print(f"early stop at epoch {epoch}: no {self.monitor} "
-                          f"improvement for {self.patience} validations")
+                    print(
+                        f"early stop at epoch {epoch}: no {self.monitor} "
+                        f"improvement for {self.patience} validations"
+                    )
                     break
         self.save("last.pth")
 
@@ -90,16 +123,41 @@ class Trainer:
             lr = batch["lr"].to(self.device)
             hr = batch["hr"].to(self.device)
             # Diffusion models (SR3) define their own loss on predicted noise;
-            # feed-forward models use a pixel loss on the output.
+            # feed-forward models use a pixel loss on the output;
+            # GAN models (SRGAN) return {"g_loss", "d_loss"}.
             if hasattr(self._base, "compute_loss"):
-                loss = self.model.compute_loss(lr, hr)
+                loss_out = self.model.compute_loss(lr, hr)
+                if isinstance(loss_out, dict):
+                    # GAN training: separate generator and discriminator steps
+                    g_loss = loss_out["g_loss"]
+                    d_loss = loss_out["d_loss"]
+                    # Generator step
+                    self.optimizer.zero_grad()
+                    g_loss.backward(retain_graph=True)
+                    self.optimizer.step()
+                    # Discriminator step
+                    if self.d_optimizer is not None:
+                        self.d_optimizer.zero_grad()
+                        d_loss.backward()
+                        self.d_optimizer.step()
+                    running += g_loss.item()
+                    pbar.set_postfix(
+                        g_loss=f"{g_loss.item():.4f}", d_loss=f"{d_loss.item():.4f}"
+                    )
+                else:
+                    loss = loss_out
+                    self.optimizer.zero_grad()
+                    loss.backward()
+                    self.optimizer.step()
+                    running += loss.item()
+                    pbar.set_postfix(loss=f"{loss.item():.4f}")
             else:
                 loss = self.criterion(self.model(lr), hr)
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-            running += loss.item()
-            pbar.set_postfix(loss=f"{loss.item():.4f}")
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+                running += loss.item()
+                pbar.set_postfix(loss=f"{loss.item():.4f}")
         print(f"epoch {epoch}: avg loss {running / len(self.loader):.4f}")
 
     def _validate(self, epoch):
@@ -119,7 +177,8 @@ class Trainer:
             return
         score = sum(vals) / len(vals)
         if self.best_score is None or (
-            score > self.best_score if self.monitor_mode == "max"
+            score > self.best_score
+            if self.monitor_mode == "max"
             else score < self.best_score
         ):
             self.best_score = score
@@ -132,7 +191,7 @@ class Trainer:
                 self.should_stop = True
 
     def save(self, filename):
-        torch.save(
-            {"model": self._base.state_dict(), "cfg": dict(self.cfg)},
-            self.out_dir / filename,
-        )
+        state = {"model": self._base.state_dict(), "cfg": dict(self.cfg)}
+        if hasattr(self._base, "discriminator"):
+            state["discriminator"] = self._base.discriminator.state_dict()
+        torch.save(state, self.out_dir / filename)

@@ -1,0 +1,66 @@
+name: srgan_df2k_x4
+
+# Stage 1: train SRGAN on DF2K synthetic bicubic LR-HR pairs.
+# SRGAN's Generator has internal PixelShuffle upsampling (4×), so it takes
+# the raw LR image (NOT pre-upscaled). Set pre_upscale: false.
+#
+# Adversarial training: the Trainer detects the dict return from compute_loss
+# and runs separate generator/discriminator optimization steps.
+
+model:
+  name: SRGAN
+  args:
+    scale: 4
+    num_features: 64
+    num_blocks: 16          # SRResNet: 16 residual blocks
+    perceptual_layer: relu5_4
+    perceptual_weight: 1.0e-3
+    adversarial_weight: 1.0e-3
+    loss: l2                  # pixel loss (paper uses MSE = l2)
+
+train:
+  epochs: 1000              # cap cao; early stopping sẽ tự dừng khi hội tụ
+  batch_size: 16
+  num_workers: 4
+  loss: l2                  # pixel loss for build_loss (l2 = MSE, per paper)
+  perceptual_weight: 0.0    # not used (SRGAN handles its own perceptual)
+  lr: 1.0e-4                # generator LR
+  d_lr: 1.0e-4              # discriminator LR
+  lr_step: 200
+  lr_gamma: 0.5
+  val_every: 10
+  early_stop_patience: 10   # dừng nếu psnr không cải thiện sau 10 lần validation
+  early_stop_metric: psnr
+  discriminator:
+    lr: 1.0e-4
+    beta1: 0.9
+    beta2: 0.999
+
+train_dataset:
+  name: DIV2K
+  args:
+    hr_dir:
+      - data/DIV2K/DIV2K_train_HR
+      - data/Flickr2K/Flickr2K_HR     # optional; skipped if missing
+    scale: 4
+    patch_size: 128
+    pre_upscale: false
+    degradation: bicubic
+    augment: true
+    repeat: 20
+
+val_datasets:
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false } }
+
+val_metrics: [psnr, ssim]
+
+test_datasets:
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false } }
+
+metrics:
+  - { name: psnr,  args: { crop: 4, y_channel: true } }
+  - { name: ssim,  args: { crop: 4, y_channel: true } }
+  - { name: lpips, args: { net: alex } }
+  - niqe
+  - musiq
+  - clipiqa

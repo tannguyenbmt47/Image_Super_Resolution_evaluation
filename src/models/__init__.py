@@ -12,6 +12,7 @@ MODELS = Registry("models")
 # Import submodules so their @MODELS.register() decorators run.
 from . import srcnn  # noqa: E402,F401  feed-forward
 from . import sr3  # noqa: E402,F401    diffusion
+from . import srgan  # noqa: E402,F401  GAN
 
 
 def build_model(cfg):
