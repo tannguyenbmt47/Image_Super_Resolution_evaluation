@@ -89,3 +89,9 @@ in the config to trade speed for quality.
 
 PSNR/SSIM are computed on the Y channel with a `scale`-pixel border crop; LPIPS on
 RGB. No-reference metrics (via `pyiqa`) score the SR image without ground truth.
+
+# Results
+
+| Model | Dataset | PSNR | SSIM | LPIPS | NIQE | MUSIQ | CLIPIQA |
+|-------|---------|------|------|-------|------|-------|---------|
+| SRCNN | DIV2K-Val | 10.7194 | 0.4620 | 0.7672 | 9.5702 | 26.0934 | 0.3963 |

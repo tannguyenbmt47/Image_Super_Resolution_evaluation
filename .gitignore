@@ -8,9 +8,7 @@ __pycache__/
 *.swp
 
 # experiment artifacts
-experiments/
 runs/
-*.pth
 *.ckpt
 *.log
 
