@@ -192,7 +192,15 @@ class Trainer:
                 self.should_stop = True
 
     def save(self, filename):
-        state = {"model": self._base.state_dict(), "cfg": dict(self.cfg)}
+        state_dict = self._base.state_dict()
+        state = {
+            "model": {
+                key: value
+                for key, value in state_dict.items()
+                if not key.startswith("_perceptual.")
+            },
+            "cfg": dict(self.cfg),
+        }
         if hasattr(self._base, "discriminator"):
             state["discriminator"] = self._base.discriminator.state_dict()
         torch.save(state, self.out_dir / filename)

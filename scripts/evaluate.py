@@ -32,6 +32,14 @@ def print_table(results: dict):
         print(row)
 
 
+def load_checkpoint(model, checkpoint_path, device):
+    state = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    state_dict = state["model"] if "model" in state else state
+    missing, unexpected = model.load_state_dict(state_dict, strict=False)
+    if missing or unexpected:
+        print(f"checkpoint load: ignored missing={missing}, unexpected={unexpected}")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -54,8 +62,7 @@ def main():
 
     cfg = load_config(args.config)
     model = build_model(cfg.model).to(args.device)
-    state = torch.load(args.checkpoint, map_location=args.device)
-    model.load_state_dict(state["model"] if "model" in state else state)
+    load_checkpoint(model, args.checkpoint, args.device)
     if args.device.startswith("cuda") and torch.cuda.device_count() > 1:
         model = DataParallel(model)
 

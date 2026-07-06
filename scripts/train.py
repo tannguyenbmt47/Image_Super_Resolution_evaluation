@@ -23,6 +23,14 @@ def _label(d):
     return d.get("label", d.name)
 
 
+def load_checkpoint(model, checkpoint_path):
+    state = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    state_dict = state["model"] if "model" in state else state
+    missing, unexpected = model.load_state_dict(state_dict, strict=False)
+    if missing or unexpected:
+        print(f"checkpoint load: ignored missing={missing}, unexpected={unexpected}")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -73,8 +81,7 @@ def main():
 
     model = build_model(cfg.model)
     if args.pretrained:
-        state = torch.load(args.pretrained, map_location="cpu")
-        model.load_state_dict(state["model"] if "model" in state else state)
+        load_checkpoint(model, args.pretrained)
         print(f"initialised from {args.pretrained}")
 
     train_set = build_dataset(cfg.train_dataset)

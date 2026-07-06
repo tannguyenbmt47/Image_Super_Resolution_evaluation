@@ -31,8 +31,14 @@ class _PyIQAMetric:
         if self._model is None:
             import pyiqa  # lazy; see requirements.txt
 
-            self._device = ref.device
-            self._model = pyiqa.create_metric(self.pyiqa_name, device=ref.device)
+            # NIQE uses float64 internally, which MPS does not support.
+            # Run no-reference metrics on CPU when the evaluation tensor lives on MPS.
+            self._device = (
+                torch.device("cpu")
+                if ref.device.type == "mps" and self.pyiqa_name == "niqe"
+                else ref.device
+            )
+            self._model = pyiqa.create_metric(self.pyiqa_name, device=self._device)
 
     @torch.no_grad()
     def __call__(self, sr: torch.Tensor, hr: torch.Tensor = None) -> float:
