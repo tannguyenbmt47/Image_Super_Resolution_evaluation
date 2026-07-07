@@ -29,8 +29,8 @@ train:
   lr_step: 200
   lr_gamma: 0.5
   val_every: 10
-  early_stop_patience: 10   # dừng nếu psnr không cải thiện sau 10 lần validation
-  early_stop_metric: psnr
+  early_stop_patience: 3    # dừng nếu lpips không cải thiện sau 3 lần validation
+  early_stop_metric: lpips
   discriminator:
     lr: 1.0e-4
     beta1: 0.9
@@ -52,7 +52,7 @@ train_dataset:
 val_datasets:
   - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false } }
 
-val_metrics: [psnr, ssim]
+val_metrics: [lpips, psnr, ssim]
 
 test_datasets:
   - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false } }
