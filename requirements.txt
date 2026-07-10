@@ -9,5 +9,7 @@ lpips
 # no-reference metrics: NIQE / MUSIQ / CLIPIQA
 pyiqa
 numba>=0.59
+# SwinIR official architecture (timm helpers)
+timm
 # tests
 pytest

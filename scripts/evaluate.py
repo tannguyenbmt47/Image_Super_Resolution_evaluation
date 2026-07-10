@@ -34,8 +34,14 @@ def print_table(results: dict):
 
 def load_checkpoint(model, checkpoint_path, device):
     state = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    state_dict = state["model"] if "model" in state else state
-    missing, unexpected = model.load_state_dict(state_dict, strict=False)
+    # Unwrap: this repo's Trainer saves {"model": ...}; official release
+    # checkpoints (e.g. SwinIR) use {"params": ...} or {"params_ema": ...}.
+    if isinstance(state, dict):
+        for key in ("model", "params_ema", "params"):
+            if key in state:
+                state = state[key]
+                break
+    missing, unexpected = model.load_state_dict(state, strict=False)
     if missing or unexpected:
         print(f"checkpoint load: ignored missing={missing}, unexpected={unexpected}")
 

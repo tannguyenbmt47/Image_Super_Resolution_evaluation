@@ -13,6 +13,7 @@ MODELS = Registry("models")
 from . import srcnn  # noqa: E402,F401  feed-forward
 from . import sr3  # noqa: E402,F401    diffusion
 from . import srgan  # noqa: E402,F401  GAN
+from . import swinir  # noqa: E402,F401 feed-forward transformer (official arch)
 
 
 def build_model(cfg):

@@ -1,5 +1,6 @@
 import pytest
 import torch
+import torch.nn.functional as F
 
 from src.datasets import transforms as T
 from src.datasets.transforms import _jpeg
@@ -7,6 +8,16 @@ from src.datasets.transforms import _jpeg
 
 def test_bicubic_shape():
     assert T.make_lr(torch.rand(3, 32, 32), 4, degradation="bicubic").shape == (3, 8, 8)
+
+
+def test_bicubic_downscale_is_antialiased():
+    # The clean bicubic degradation must follow the standard SR protocol
+    # (MATLAB/PIL-style antialiased downscale); a plain aliasing kernel is
+    # out-of-distribution for models trained on standard bicubic LR.
+    hr = torch.rand(3, 32, 32)
+    expected = F.interpolate(hr.unsqueeze(0), size=(8, 8), mode="bicubic",
+                             align_corners=False, antialias=True).squeeze(0).clamp(0, 1)
+    assert torch.allclose(T.make_lr(hr, 4, degradation="bicubic"), expected)
 
 
 def test_realistic_shape_and_range():
