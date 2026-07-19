@@ -351,11 +351,11 @@ cơ chế shifted-window attention khai thác hiệu quả thông tin cấu trú
 huấn luyện nhanh, đồng thời cải thiện ổn định so với bicubic, nhưng khả năng khôi
 phục chi tiết bị giới hạn bởi độ sâu và trường tiếp nhận nhỏ của mạng.
 
-Ngược lại, SRGAN đạt kết quả tốt nhất theo LPIPS và MUSIQ, chứng minh rằng
+Ngược lại, SRGAN đạt kết quả tốt nhất theo LPIPS, chứng minh rằng
 adversarial loss và perceptual loss có thể tạo ra texture sắc nét, tự nhiên hơn
 so với các mô hình chỉ tối ưu sai số điểm ảnh. Tuy nhiên, kết quả PSNR và SSIM
 thấp hơn cũng cho thấy các chi tiết được sinh ra không phải lúc nào cũng trùng
-khớp với ground truth. SR3 đạt NIQE tốt nhất nhưng có PSNR thấp nhất. Kết quả này
+khớp với ground truth. SR3 đạt NIQE và MUSIQ tốt nhất nhưng có PSNR thấp nhất. Kết quả này
 phản ánh khả năng tạo ảnh có thống kê tự nhiên của diffusion model, đồng thời
 cho thấy kiến trúc có số lượng tham số lớn và quá trình khử nhiễu nhiều bước cần
 ngân sách huấn luyện đáng kể hơn để bảo toàn chính xác nội dung ảnh.
