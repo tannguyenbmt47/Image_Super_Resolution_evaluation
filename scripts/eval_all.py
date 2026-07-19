@@ -28,7 +28,8 @@ RUNS = {
 def eval_one(cfg_path):
     cfg = load_config(cfg_path)
     out = Path(f"experiments/{cfg.name}")
-    ckpt = out / "best.pth" if (out / "best.pth").exists() else out / "last.pth"
+    # protocol: final checkpoint after the equal training budget
+    ckpt = out / "last.pth"
     print(f"checkpoint: {ckpt}", flush=True)
     model = build_model(cfg.model).to(DEVICE)
     state = torch.load(ckpt, map_location=DEVICE, weights_only=False)

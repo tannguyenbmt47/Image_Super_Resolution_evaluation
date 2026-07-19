@@ -92,7 +92,7 @@ def fig_qualitative(indices=(3, 17, 46)):
     for name, cfg_path in MODELS.items():
         cfg = load_config(cfg_path)
         m = build_model(cfg.model).to(DEVICE).eval()
-        state = torch.load(f"experiments/{cfg.name}/best.pth",
+        state = torch.load(f"experiments/{cfg.name}/last.pth",  # final checkpoint, equal budget
                            map_location=DEVICE, weights_only=False)
         m.load_state_dict(state["model"] if "model" in state else state, strict=False)
         nets[name] = m

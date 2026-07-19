@@ -27,7 +27,7 @@ train:
   lr_step: 3                # giảm LR một lần ở giữa run (6 epoch)
   lr_gamma: 0.5
   val_every: 1                   # val 20 ảnh (limit) ~ 3ph/lần
-  early_stop_patience: 3
+  early_stop_patience: 0         # tắt early stop: chạy đủ 6 epoch
   early_stop_metric: psnr
 
 train_dataset:
