@@ -14,6 +14,7 @@ halts training when the metric has not improved for that many validations.
 # Metrics where a lower value is better (everything else: higher is better).
 _LOWER_IS_BETTER = {"lpips", "niqe"}
 
+import json
 from pathlib import Path
 
 import torch
@@ -88,6 +89,10 @@ class Trainer:
         self.no_improve = 0
         self.should_stop = False
 
+        # per-epoch history, flushed to history.json each epoch (crash-safe)
+        self.history = {"train_loss": [], "val": []}
+        self.start_epoch = 1
+
     @property
     def _base(self):
         return self.model.module if self._parallel else self.model
@@ -103,22 +108,28 @@ class Trainer:
 
     def train(self):
         val_every = self.cfg.get("val_every", 10)
-        for epoch in range(1, self.cfg.epochs + 1):
+        for epoch in range(self.start_epoch, self.cfg.epochs + 1):
             self._train_epoch(epoch)
             self.scheduler.step()
             if epoch % val_every == 0 or epoch == self.cfg.epochs:
                 self._validate(epoch)
-                if self.should_stop:
-                    print(
-                        f"early stop at epoch {epoch}: no {self.monitor} "
-                        f"improvement for {self.patience} validations"
-                    )
-                    break
-        self.save("last.pth")
+            # full resumable state every epoch (crash-safe)
+            self.save("last.pth", epoch=epoch)
+            if self.should_stop:
+                print(
+                    f"early stop at epoch {epoch}: no {self.monitor} "
+                    f"improvement for {self.patience} validations"
+                )
+                break
 
     def _train_epoch(self, epoch):
         self.model.train()
         running = 0.0
+        # amp: true -> bf16 autocast (no GradScaler needed for bf16)
+        import contextlib
+        amp = self.cfg.get("amp", False) and self.device.startswith("cuda")
+        cast = (lambda: torch.autocast("cuda", dtype=torch.bfloat16)) if amp \
+            else contextlib.nullcontext
         pbar = tqdm(self.loader, desc=f"train[{epoch}/{self.cfg.epochs}]")
         for batch in pbar:
             lr = batch["lr"].to(self.device)
@@ -127,7 +138,8 @@ class Trainer:
             # feed-forward models use a pixel loss on the output;
             # GAN models (SRGAN) return {"g_loss", "d_loss"}.
             if hasattr(self._base, "compute_loss"):
-                loss_out = self._base.compute_loss(lr, hr)
+                with cast():
+                    loss_out = self._base.compute_loss(lr, hr)
                 if isinstance(loss_out, dict):
                     # GAN training: separate generator and discriminator steps
                     g_loss = loss_out["g_loss"]
@@ -153,13 +165,18 @@ class Trainer:
                     running += loss.item()
                     pbar.set_postfix(loss=f"{loss.item():.4f}")
             else:
-                loss = self.criterion(self.model(lr), hr)
+                with cast():
+                    loss = self.criterion(self.model(lr), hr)
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
                 running += loss.item()
                 pbar.set_postfix(loss=f"{loss.item():.4f}")
-        print(f"epoch {epoch}: avg loss {running / len(self.loader):.4f}")
+        avg = running / len(self.loader)
+        lr_now = self.scheduler.get_last_lr()[0]
+        print(f"epoch {epoch}: avg loss {avg:.4f} (lr {lr_now:.2e})")
+        self.history["train_loss"].append({"epoch": epoch, "loss": avg, "lr": lr_now})
+        self._flush_history()
 
     def _validate(self, epoch):
         if not self.val_sets or not self.metrics:
@@ -169,7 +186,14 @@ class Trainer:
             line = ", ".join(f"{m}={v:.4f}" for m, v in scores.items())
             print(f"[val/{ds_name}] {line}")
         self.best = results
+        self.history["val"].append({"epoch": epoch, **{
+            ds: dict(scores) for ds, scores in results.items()}})
+        self._flush_history()
         self._update_early_stop(results)
+
+    def _flush_history(self):
+        with open(self.out_dir / "history.json", "w") as fh:
+            json.dump(self.history, fh, indent=1)
 
     def _update_early_stop(self, results):
         # monitored score = mean of the metric across val datasets that report it
@@ -191,7 +215,7 @@ class Trainer:
             if self.patience > 0 and self.no_improve >= self.patience:
                 self.should_stop = True
 
-    def save(self, filename):
+    def save(self, filename, epoch=None):
         state_dict = self._base.state_dict()
         state = {
             "model": {
@@ -203,4 +227,45 @@ class Trainer:
         }
         if hasattr(self._base, "discriminator"):
             state["discriminator"] = self._base.discriminator.state_dict()
+        if epoch is not None:  # full resumable state (last.pth)
+            import random
+
+            state["resume"] = {
+                "epoch": epoch,
+                "optimizer": self.optimizer.state_dict(),
+                "scheduler": self.scheduler.state_dict(),
+                "d_optimizer": self.d_optimizer.state_dict() if self.d_optimizer else None,
+                "best_score": self.best_score,
+                "no_improve": self.no_improve,
+                "history": self.history,
+                "rng": {
+                    "torch": torch.get_rng_state(),
+                    "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+                    "python": random.getstate(),
+                },
+            }
         torch.save(state, self.out_dir / filename)
+
+    def load_resume(self, path):
+        """Restore full training state from a last.pth written by save(epoch=...)."""
+        import random
+
+        state = torch.load(path, map_location=self.device, weights_only=False)
+        self._base.load_state_dict(state["model"], strict=False)
+        r = state.get("resume")
+        if not r:
+            print(f"resume: {path} has weights only; starting from epoch 1")
+            return
+        self.optimizer.load_state_dict(r["optimizer"])
+        self.scheduler.load_state_dict(r["scheduler"])
+        if self.d_optimizer and r.get("d_optimizer"):
+            self.d_optimizer.load_state_dict(r["d_optimizer"])
+        self.best_score = r["best_score"]
+        self.no_improve = r["no_improve"]
+        self.history = r["history"]
+        torch.set_rng_state(r["rng"]["torch"].cpu())
+        if r["rng"]["cuda"] is not None and torch.cuda.is_available():
+            torch.cuda.set_rng_state_all([s.cpu() for s in r["rng"]["cuda"]])
+        random.setstate(r["rng"]["python"])
+        self.start_epoch = r["epoch"] + 1
+        print(f"resume: restored epoch {r['epoch']} -> continuing at {self.start_epoch}")

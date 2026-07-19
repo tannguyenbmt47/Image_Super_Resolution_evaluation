@@ -66,6 +66,10 @@ def main():
     parser.add_argument(
         "--no-val", action="store_true", help="skip in-training validation"
     )
+    parser.add_argument(
+        "--resume", nargs="?", const="auto", default=None,
+        help="resume from a last.pth (no value = experiments/<name>/last.pth)",
+    )
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -102,6 +106,9 @@ def main():
         metrics=metrics,
         out_dir=out_dir,
     )
+    if args.resume:
+        path = f"{out_dir}/last.pth" if args.resume == "auto" else args.resume
+        trainer.load_resume(path)
     trainer.train()
 
 

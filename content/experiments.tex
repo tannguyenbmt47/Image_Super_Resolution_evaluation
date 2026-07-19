@@ -1,0 +1,200 @@
+% ============ MỤC THỰC NGHIỆM (bản thay thế) ============
+% Thay thế toàn bộ từ \section{Thực nghiệm} đến trước \section{Nhận xét và kết luận}
+% trong report. Phần "Chỉ số đánh giá" giữ nguyên như bản cũ (đã đầy đủ) — chèn lại
+% nguyên văn tại vị trí đánh dấu bên dưới.
+% Các hình dùng đường dẫn img/report/*.png làm placeholder — thay bằng ảnh thật.
+
+\section{Thực nghiệm}
+
+Mục tiêu của phần thực nghiệm là huấn luyện lại và đánh giá bốn mô hình đã trình
+bày ở trên (SRCNN, SRGAN, SwinIR, SR3) trong cùng một điều kiện được kiểm soát,
+từ đó so sánh trực tiếp bốn hướng tiếp cận: CNN, GAN, Transformer và diffusion.
+Toàn bộ thực nghiệm chạy trên một máy cá nhân với thông số như Bảng~\ref{tab:environment}.
+
+\begin{table}[H]
+\centering
+\caption{Thông số môi trường thực nghiệm.}
+\label{tab:environment}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Thông số} & \textbf{Chi tiết} \\ \hline
+OS & Linux 6.8.0 (x86\_64) \\ \hline
+Python & 3.12 \\ \hline
+Framework & PyTorch 2.12 (CUDA 13) \\ \hline
+CPU & 16 cores (x86\_64) \\ \hline
+RAM & 14 GB \\ \hline
+GPU & NVIDIA GeForce RTX 4060 Laptop (8 GB, giới hạn dùng 6 GB) \\ \hline
+Mixed precision & bfloat16 autocast (SwinIR, SR3) \\ \hline
+\end{tabular}
+\end{table}
+
+Mã nguồn và hướng dẫn sử dụng được lưu giữ tại: \url{https://github.com/tannguyenbmt47/Image_Super_Resolution_evaluation}.
+
+\subsection{Tập dữ liệu}
+\label{sec:datasets}
+
+\textbf{Dữ liệu huấn luyện.} Các mô hình được huấn luyện trên tập DF2K, là hợp của
+DIV2K train (800 ảnh) và Flickr2K (2650 ảnh), tổng cộng 3450 ảnh high-resolution
+chất lượng 2K với nội dung đa dạng. Ảnh low-resolution được sinh từ ảnh HR bằng
+phép thu nhỏ bicubic có antialiasing với hệ số $\times 4$, theo đúng protocol
+bicubic degradation chuẩn của bài toán classical SR. Để loại bỏ nút thắt giải mã
+ảnh 2K trong quá trình nạp dữ liệu, toàn bộ ảnh HR được cắt trước thành 30581
+tile kích thước $480 \times 480$ không chồng lấp; mỗi bước huấn luyện cắt ngẫu
+nhiên một patch từ tile, kèm augmentation lật ngang/dọc và xoay $90^{\circ}$.
+
+\textbf{Dữ liệu đánh giá.} Việc đánh giá thực hiện trên DIV2K validation (100
+ảnh), tách riêng hoàn toàn khỏi dữ liệu huấn luyện để điểm số phản ánh khả năng
+tổng quát hóa. Do chi phí self-attention của mô hình diffusion không cho phép xử
+lý ảnh 2K nguyên bản, tất cả mô hình được đánh giá trên cùng vùng center-crop
+$256 \times 256$ của mỗi ảnh nhằm bảo đảm so sánh thống nhất.
+
+% ================================================================
+% CHÈN LẠI NGUYÊN VĂN \subsection{Chỉ số đánh giá} (PSNR/SSIM/LPIPS/
+% NIQE/MUSIQ/CLIPIQA + bảng tổng hợp) TỪ BẢN CŨ VÀO ĐÂY.
+% ================================================================
+
+\subsection{Thiết lập huấn luyện}
+\label{sec:training-setup}
+
+Bốn mô hình thuộc bốn họ kiến trúc khác nhau, vì vậy giao thức so sánh công bằng
+được cố định như sau:
+
+\begin{itemize}
+\item \textbf{Ngân sách dữ liệu như nhau:} mỗi mô hình được huấn luyện 6 epoch
+      trên 30581 tile, tương đương khoảng 50 epoch trên 3450 ảnh gốc
+      ($\approx 183$ nghìn patch). Early stopping được kích hoạt khi chỉ số
+      validation không cải thiện sau 3 lần đánh giá liên tiếp.
+\item \textbf{Cùng dữ liệu và degradation:} cùng tập DF2K, cùng bicubic $\times 4$.
+\item \textbf{Cùng giao thức đánh giá:} cùng DIV2K-Val center-crop 256, cùng sáu
+      chỉ số.
+\end{itemize}
+
+Siêu tham số của từng mô hình bám theo bài báo gốc và được tóm tắt trong
+Bảng~\ref{tab:hparams}. SRCNN dùng MSE loss trên ảnh LR đã phóng to sẵn bằng
+bicubic (pre-upsampling). SRGAN dùng content loss VGG54 với trọng số
+$6 \times 10^{-3}$ kết hợp adversarial loss $10^{-3}$ và pixel loss MSE; generator
+và discriminator được tối ưu xen kẽ. SwinIR dùng phiên bản lightweight (embed dim
+60, 4 khối RSTB, cửa sổ $8 \times 8$) với L1 loss; phiên bản M (11.9M tham số)
+không khả thi để huấn luyện từ đầu trong ngân sách bộ nhớ 6 GB. SR3 huấn luyện
+U-Net dự đoán nhiễu với L1 loss, 1000 bước diffusion khi huấn luyện và 100 bước
+DDIM khi suy diễn. Tất cả dùng Adam; learning rate giảm một nửa tại giữa quá
+trình huấn luyện. SwinIR và SR3 dùng mixed precision bfloat16 để tăng gấp đôi
+batch size trong cùng giới hạn bộ nhớ.
+
+\begin{table}[H]
+\centering
+\caption{Cấu hình huấn luyện của bốn mô hình.}
+\label{tab:hparams}
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\textbf{Mô hình} & \textbf{Tham số} & \textbf{Loss} & \textbf{Batch} & \textbf{Learning rate} & \textbf{Patch HR} \\ \hline
+SRCNN        & 0.07M  & MSE                       & 16 & $10^{-4}$          & 128 \\ \hline
+SRGAN        & 6.76M\textsuperscript{*} & MSE + VGG54 + adv. & 16 & $10^{-4}$ & 96  \\ \hline
+SwinIR-light & 0.93M  & L1                        & 12 & $2 \times 10^{-4}$ & 256 \\ \hline
+SR3          & 63.15M & L1 (noise prediction)     & 6  & $10^{-4}$          & 160 \\ \hline
+\multicolumn{6}{|l|}{\footnotesize \textsuperscript{*}Gồm generator 1.55M và discriminator; suy diễn chỉ dùng generator.} \\ \hline
+\end{tabular}
+\end{table}
+
+Thời gian huấn luyện thực tế: SRCNN 9 phút, SRGAN 29 phút, SwinIR 1 giờ 28 phút,
+SR3 2 giờ 15 phút (dừng sớm tại epoch 4 do early stopping). Tổng thời gian cho cả
+bốn mô hình khoảng 4 giờ 20 phút.
+
+\subsection{Kết quả đạt được}
+\label{sec:results}
+
+Bảng~\ref{tab:experiment-results} trình bày kết quả đánh giá trên DIV2K-Val theo
+sáu chỉ số, kèm baseline nội suy bicubic để đối chiếu. PSNR, SSIM, MUSIQ và
+CLIPIQA càng cao càng tốt; LPIPS và NIQE càng thấp càng tốt.
+
+\begin{table}[H]
+\centering
+\caption{Kết quả đánh giá các mô hình super-resolution trên DIV2K-Val
+($\times 4$, center-crop 256). \textbf{Đậm}: tốt nhất theo từng chỉ số.}
+\label{tab:experiment-results}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Model} & \textbf{PSNR} & \textbf{SSIM} & \textbf{LPIPS} & \textbf{NIQE} & \textbf{MUSIQ} & \textbf{CLIPIQA} \\ \hline
+Bicubic & 26.81 & 0.7227 & 0.4716 & 8.94 & 22.63 & 0.5280 \\ \hline
+SRCNN   & 27.49 & 0.7523 & 0.3999 & 8.43 & 27.25 & \textbf{0.5841} \\ \hline
+SRGAN   & 26.00 & 0.6999 & \textbf{0.3031} & 5.60 & \textbf{38.53} & 0.4317 \\ \hline
+SwinIR  & \textbf{28.01} & \textbf{0.7708} & 0.3632 & 8.35 & 29.56 & 0.4682 \\ \hline
+SR3     & 19.32 & 0.6556 & 0.3586 & \textbf{4.85} & 30.27 & 0.4015 \\ \hline
+\end{tabular}
+\end{table}
+
+Kết quả thể hiện rõ sự đánh đổi giữa độ trung thực (fidelity) và chất lượng cảm
+nhận (perceptual quality) đã phân tích ở các mục trước:
+
+\begin{itemize}
+\item \textbf{SwinIR} đạt PSNR và SSIM cao nhất (28.01 dB / 0.7708). Với chỉ
+      0.93M tham số, phiên bản lightweight vượt SRCNN 0.52 dB, cho thấy cơ chế
+      window attention sử dụng ngân sách huấn luyện hiệu quả nhất cho mục tiêu
+      tối thiểu hóa sai số điểm ảnh.
+\item \textbf{SRGAN} chấp nhận giảm PSNR (thấp hơn bicubic 0.8 dB) để đổi lấy
+      chất lượng cảm nhận: LPIPS tốt nhất (0.3031) và MUSIQ tốt nhất (38.53).
+      Đây là hành vi đặc trưng của adversarial training: thay vì trung bình hóa
+      các khả năng như mô hình tối ưu MSE, generator sinh texture sắc nét khiến
+      ảnh trông tự nhiên hơn dù sai số điểm ảnh lớn hơn.
+\item \textbf{SR3} đạt NIQE tốt nhất (4.85), nghĩa là ảnh sinh ra có thống kê
+      gần ảnh tự nhiên nhất, nhưng PSNR thấp nhất (19.32 dB). Nguyên nhân thứ
+      nhất là bản chất sinh mẫu ngẫu nhiên của diffusion khiến chi tiết có thể
+      lệch khỏi ground truth; nguyên nhân thứ hai là mô hình 63M tham số còn xa
+      điểm hội tụ với ngân sách huấn luyện này --- nhất quán với hạn chế đã nêu
+      ở mục lý thuyết rằng diffusion đòi hỏi chi phí huấn luyện lớn hơn nhiều
+      bậc so với các họ mô hình còn lại.
+\item \textbf{SRCNN} vượt bicubic trên mọi chỉ số, xác nhận vai trò baseline hợp
+      lệ; khoảng cách với SwinIR phản ánh giới hạn của kiến trúc 3 lớp tích chập.
+\end{itemize}
+
+\subsection{Đường cong huấn luyện}
+
+Hình~\ref{fig:loss-curves} và Hình~\ref{fig:val-curves} trình bày diễn tiến huấn
+luyện. Do bốn mô hình dùng bốn hàm loss khác bản chất (pixel loss, composite GAN
+loss, noise-prediction loss), các đường loss chỉ dùng để quan sát tính hội tụ của
+từng mô hình; việc so sánh giữa các mô hình dựa trên validation PSNR/SSIM đo trên
+cùng tập DIV2K-Val.
+
+\begin{figure}[H]
+\centering
+% PLACEHOLDER: xuất từ notebook train.ipynb (ô Visualize), hình 4 panel loss
+\includegraphics[width=0.9\textwidth]{img/report/training-loss.png}
+\caption{Training loss của bốn mô hình (mỗi mô hình một panel do thang đo loss khác nhau).}
+\label{fig:loss-curves}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+% PLACEHOLDER: xuất từ notebook train.ipynb (ô Visualize), hình val PSNR/SSIM
+\includegraphics[width=0.9\textwidth]{img/report/val-psnr-ssim.png}
+\caption{Validation PSNR và SSIM trên DIV2K-Val theo tiến trình huấn luyện.}
+\label{fig:val-curves}
+\end{figure}
+
+\subsection{Kết quả định tính}
+
+Hình~\ref{fig:qualitative} so sánh trực quan kết quả của các mô hình.
+SwinIR khôi phục cạnh và cấu trúc ổn định nhất; SRGAN cho texture sắc nét hơn ở
+vùng chi tiết cao (cỏ, tóc, vân gạch) nhưng đôi khi sinh chi tiết không có trong
+ảnh gốc; SR3 cho ảnh nhìn tự nhiên nhưng nội dung chi tiết có thể sai lệch;
+SRCNN mượt và an toàn nhưng thiếu chi tiết tần số cao.
+
+\begin{figure}[H]
+\centering
+% PLACEHOLDER: lưới so sánh, mỗi hàng một ảnh, cột = LR / Bicubic / SRCNN / SRGAN / SwinIR / SR3 / Ground truth
+\includegraphics[width=0.9\textwidth]{img/report/qualitative-grid.png}
+\caption{So sánh định tính trên DIV2K-Val ($\times 4$): từ trái sang phải là ảnh
+LR, Bicubic, SRCNN, SRGAN, SwinIR, SR3 và ground truth.}
+\label{fig:qualitative}
+\end{figure}
+
+\subsection{Hạn chế của thực nghiệm}
+
+Một số hạn chế cần lưu ý khi diễn giải kết quả: (1) ngân sách huấn luyện nhỏ hơn
+nhiều so với các bài báo gốc (SwinIR gốc huấn luyện 500 nghìn iteration, SR3 gốc
+khoảng 1 triệu bước), đặc biệt bất lợi cho SR3; (2) SwinIR dùng phiên bản
+lightweight 0.93M thay vì phiên bản M 11.9M do giới hạn bộ nhớ GPU; (3) đánh giá
+trên center-crop 256 thay vì ảnh đầy đủ do ràng buộc bộ nhớ của mô hình
+diffusion; (4) thực nghiệm chỉ xét degradation bicubic, chưa xét các degradation
+thực tế (blur, nhiễu, nén JPEG) và chưa thực hiện giai đoạn fine-tune trên dữ
+liệu real-world như RealSR.

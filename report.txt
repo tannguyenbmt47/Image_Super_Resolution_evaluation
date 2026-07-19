@@ -1,0 +1,895 @@
+\section{Giới thiệu tổng quan}
+
+Image Super-Resolution là một bài toán trong lĩnh vực xử lý ảnh và thị giác máy tính, hướng đến việc tái tạo ảnh có độ phân giải cao từ ảnh đầu vào có độ phân giải thấp. Về bản chất, bài toán này không chỉ đơn thuần là phóng to kích thước ảnh, mà còn liên quan đến việc khôi phục các chi tiết không gian đã bị mất hoặc suy giảm trong quá trình thu nhận, nén, truyền tải hoặc lưu trữ ảnh. Do đó, Image Super-Resolution được xem là một bài toán nghịch đảo có tính bất định cao, bởi từ cùng một ảnh độ phân giải thấp có thể tồn tại nhiều khả năng ảnh độ phân giải cao tương ứng.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image1.png}
+\caption{ảnh đầu vào có độ phân giải thấp trước và sau khi áp dụng kỹ thuật siêu độ phân giải (Image Super-Resolution)}
+\end{figure}
+
+Trong thực tế, chất lượng ảnh có thể bị suy giảm bởi nhiều yếu tố khác nhau như hiện tượng làm mờ, nhiễu, nén ảnh, giới hạn của cảm biến thu nhận hình ảnh hoặc quá trình giảm mẫu. Những yếu tố này khiến việc khôi phục lại ảnh độ phân giải cao trở nên phức tạp, đặc biệt trong các bối cảnh mà thông tin chi tiết ban đầu đã bị mất một phần hoặc không còn tồn tại rõ ràng trong ảnh đầu vào. Vì vậy, mục tiêu của Image Super-Resolution là xây dựng các mô hình có khả năng suy luận và tái tạo những chi tiết hợp lý, đồng thời duy trì tính nhất quán về cấu trúc, biên dạng và nội dung thị giác của ảnh.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image2.png}
+\caption{Hình. Ví dụ về hiện tượng khôi phục sai trong Super-Resolution.}
+\end{figure}
+
+Bài toán Image Super-Resolution có ý nghĩa thực tiễn lớn trong nhiều lĩnh vực như ảnh y tế, ảnh vệ tinh, camera giám sát, phục hồi ảnh cũ, nâng cao chất lượng video và các hệ thống hiển thị hình ảnh độ phân giải cao. Trong các ứng dụng này, việc cải thiện độ phân giải ảnh có thể giúp tăng khả năng quan sát, hỗ trợ phân tích thông tin và nâng cao chất lượng trực quan của dữ liệu hình ảnh. Tuy nhiên, thách thức cốt lõi của bài toán nằm ở việc cân bằng giữa độ trung thực của ảnh được khôi phục và chất lượng cảm nhận của người quan sát, đặc biệt khi mô hình cần tái tạo các chi tiết nhỏ mà ảnh đầu vào không cung cấp đầy đủ.
+
+Với sự phát triển của học sâu, Image Super-Resolution đã đạt được nhiều tiến bộ đáng kể so với các phương pháp nội suy truyền thống. Các mô hình hiện đại có khả năng học mối quan hệ phức tạp giữa ảnh độ phân giải thấp và ảnh độ phân giải cao thông qua dữ liệu huấn luyện quy mô lớn. Nhờ đó, chúng có thể tạo ra ảnh đầu ra sắc nét hơn, giàu chi tiết hơn và phù hợp hơn với đặc trưng thị giác tự nhiên. Tuy vậy, Image Super-Resolution vẫn là một bài toán mở, đặc biệt trong các điều kiện thực tế khi ảnh đầu vào chịu nhiều dạng suy giảm phức tạp và không xác định.
+
+\section{Các hướng tiếp cận chính trong Image Super-Resolution}
+
+Các phương pháp giải quyết bài toán Image Super-Resolution có thể được phân loại theo nhiều tiêu chí khác nhau, chẳng hạn như cách xây dựng dữ liệu huấn luyện, giả định về quá trình suy giảm ảnh, kiến trúc mô hình hoặc miền ứng dụng cụ thể. Dựa trên các nghiên cứu khảo sát trong lĩnh vực này, có thể trình bày các hướng tiếp cận chính theo các nhóm sau: phương pháp truyền thống, supervised super-resolution, unsupervised super-resolution, blind/real-world super-resolution và domain-specific super-resolution. Bên cạnh đó, các mô hình sinh hiện đại, đặc biệt là GAN và diffusion model, cũng đóng vai trò quan trọng trong việc cải thiện chất lượng cảm nhận của ảnh tái tạo.
+
+\subsection{Phương pháp truyền thống}
+
+Trước khi học sâu được áp dụng rộng rãi, Image Super-Resolution chủ yếu dựa trên các phương pháp truyền thống như nội suy, mô hình thống kê, phương pháp dựa trên biên, phương pháp dựa trên patch và sparse representation. Các phương pháp nội suy như nearest-neighbor, bilinear và bicubic thường được sử dụng để phóng đại ảnh bằng cách ước lượng giá trị điểm ảnh mới từ các điểm ảnh lân cận.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image3.png}
+\caption{Hình X. So sánh chất lượng ảnh giữa Groundtruth và các phương pháp nội suy truyền thống: Nearest neighbor, Bilinear và Bicubic.}
+\end{figure}
+
+Ưu điểm của nhóm phương pháp này là đơn giản, dễ triển khai và có chi phí tính toán thấp. Tuy nhiên, do chủ yếu dựa trên thông tin cục bộ có sẵn trong ảnh đầu vào, các phương pháp này thường khó khôi phục các chi tiết tần số cao như cạnh sắc, kết cấu nhỏ hoặc hoa văn phức tạp. Vì vậy, ảnh đầu ra thường có xu hướng bị mờ và thiếu chi tiết. Trong các nghiên cứu hiện đại, bicubic interpolation thường được sử dụng như một baseline để so sánh với các mô hình học sâu.
+
+\subsection{2 Supervised Image Super-Resolution}
+
+Supervised Image Super-Resolution là hướng tiếp cận phổ biến nhất trong các nghiên cứu học sâu về SR. Trong thiết lập này, mô hình được huấn luyện trên các cặp ảnh độ phân giải thấp và ảnh độ phân giải cao tương ứng. Ảnh LR thường được tạo ra từ ảnh HR bằng một quá trình suy giảm xác định, ví dụ như bicubic downsampling. Mục tiêu của mô hình là học ánh xạ từ không gian ảnh LR sang không gian ảnh HR.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image4.png}
+\caption{Hình X. Minh họa quá trình học ánh xạ từ ảnh độ phân giải thấp sang ảnh độ phân giải cao trong Supervised Image Super-Resolution.}
+\end{figure}
+
+Các mô hình supervised SR thường được phân tích thông qua một số thành phần chính. \textbf{Thứ nhất} là framework tái tạo ảnh, tức vị trí và cách thức thực hiện upsampling trong mô hình. Các framework phổ biến gồm pre-upsampling, post-upsampling, progressive upsampling và iterative up-and-down sampling.
+
+\begin{itemize}
+\item \textbf{Pre-upsampling} phóng to ảnh LR ngay từ đầu bằng các phương pháp như bicubic interpolation, sau đó mạng học cách khôi phục chi tiết trên ảnh đã được phóng to. Cách này dễ hiểu và dễ triển khai, nhưng tốn nhiều chi phí tính toán vì mô hình phải xử lý ảnh ở độ phân giải cao.
+\item \textbf{Post-upsampling} giữ ảnh ở độ phân giải thấp trong phần lớn quá trình trích xuất đặc trưng, sau đó mới phóng to ở cuối mô hình để tạo ảnh HR. Đây là framework được sử dụng rộng rãi vì giúp giảm chi phí tính toán và bộ nhớ, đồng thời vẫn giữ được hiệu quả tái tạo ảnh.
+\item \textbf{Progressive upsampling} không phóng to ảnh một lần mà tăng độ phân giải theo từng giai đoạn, ví dụ từ ×2 rồi đến ×4. Cách này giúp mô hình khôi phục chi tiết dần dần, đặc biệt hữu ích khi cần phóng đại ảnh với hệ số lớn.
+\end{itemize}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image5.png}
+\caption{Minh họa các framework phổ biến trong Supervised Image Super-Resolution: pre-upsampling, post-upsampling và progressive upsampling.}
+\end{figure}
+\section{(a) Pre-upsampling, (b) Post-upsampling, and (c) Progressive upsampling frameworks.}
+
+\begin{itemize}
+\item \textbf{Iterative up-and-down sampling} lặp lại quá trình phóng lên và hạ xuống giữa không gian độ phân giải thấp và cao. Nhờ đó, mô hình có thể liên tục điều chỉnh sai lệch và cải thiện chi tiết ảnh, nhưng framework này thường phức tạp và tốn tài nguyên hơn.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image6.png}
+\caption{Hình X. Minh họa framework: Iterative up and downsampling}
+\end{figure}
+
+Trong đó, post-upsampling thường được sử dụng rộng rãi vì phần lớn quá trình trích xuất đặc trưng được thực hiện trong không gian độ phân giải thấp, giúp giảm chi phí tính toán.
+
+\textbf{Thứ hai là thiết kế kiến trúc mạng}. Các mô hình CNN ban đầu, tiêu biểu như SRCNN, cho thấy khả năng học trực tiếp ánh xạ giữa ảnh LR và HR. Sau đó, nhiều thiết kế mạng sâu hơn được phát triển, sử dụng residual learning, dense connection, recursive learning, multi-path learning hoặc attention mechanism nhằm cải thiện khả năng biểu diễn đặc trưng và khôi phục chi tiết ảnh. Những mô hình này thường đạt kết quả tốt trên các độ đo định lượng như PSNR và SSIM trong các benchmark chuẩn.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image7.png}
+\caption{Hình X. Kiến trúc sử dụng residual groups, residual channel attention blocks và các kết nối skip để khôi phục ảnh HR từ ảnh LR.}
+\end{figure}
+
+\textbf{Thứ ba} là hàm mất mát và chiến lược optimization. Các mô hình supervised SR thường sử dụng pixel loss như L1 hoặc L2 để làm cho ảnh tái tạo gần với ảnh ground truth ở mức điểm ảnh. Bên cạnh pixel loss, nhiều mô hình supervised SR thường kết hợp thêm các hàm mất mát khác để cải thiện chất lượng ảnh đầu ra.
+
+\begin{itemize}
+\item \textbf{Perceptual loss} được dùng để so sánh ảnh tái tạo và ảnh ground truth trong không gian đặc trưng của một mạng đã huấn luyện trước, chẳng hạn VGG. Thay vì chỉ so sánh từng điểm ảnh, perceptual loss giúp mô hình giữ lại các đặc trưng thị giác quan trọng hơn, làm ảnh nhìn tự nhiên và rõ chi tiết hơn.
+\item \textbf{Adversarial loss} thường được sử dụng trong các mô hình dựa trên GAN. Khi đó, mô hình SR đóng vai trò generator tạo ảnh độ phân giải cao, còn discriminator học cách phân biệt ảnh tái tạo với ảnh thật. Nhờ cơ chế cạnh tranh này, ảnh đầu ra có thể sắc nét hơn và có nhiều chi tiết thị giác hơn. Tuy nhiên, adversarial loss cũng có thể làm mô hình khó huấn luyện hơn hoặc tạo ra chi tiết không hoàn toàn chính xác.
+\item \textbf{Texture loss} tập trung vào việc khôi phục kết cấu bề mặt như tóc, da, vải, lá cây hoặc các vùng có nhiều chi tiết nhỏ. Loss này giúp ảnh tránh bị quá mượt và cải thiện cảm giác chân thực về mặt texture. Ngoài ra, một số phương pháp còn dùng thêm các ràng buộc như edge loss để giữ biên ảnh, total variation loss để giảm nhiễu, hoặc frequency loss để cải thiện chi tiết ở miền tần số cao.
+\end{itemize}
+
+Trong thực tế, các mô hình SR thường không chỉ dùng một loss duy nhất mà kết hợp nhiều loss với các trọng số khác nhau. Ví dụ, pixel loss giúp đảm bảo độ chính xác so với ground truth, perceptual loss cải thiện chất lượng cảm nhận, adversarial loss tăng độ sắc nét, còn texture loss giúp phục hồi chi tiết bề mặt. Sự kết hợp này tạo ra sự cân bằng giữa độ chính xác định lượng và chất lượng thị giác của ảnh tái tạo.
+
+Nhìn chung, supervised SR có ưu điểm là rõ ràng về thiết lập dữ liệu, dễ đánh giá và thường đạt hiệu quả cao trên các tập benchmark. Tuy nhiên, hạn chế chính là sự phụ thuộc vào cặp dữ liệu LR-HR và giả định về quá trình degradation của ảnh. Khi ảnh thực tế có degradation khác với dữ liệu huấn luyện, hiệu quả của mô hình có thể suy giảm đáng kể.
+
+\subsection{Unsupervised Image Super-Resolution}
+
+Unsupervised Image Super-Resolution được phát triển nhằm giảm sự phụ thuộc vào dữ liệu LR-HR ghép cặp. Trong thực tế, việc thu thập hai ảnh của cùng một cảnh ở hai mức độ phân giải khác nhau là không đơn giản. Vì vậy, nhiều phương pháp supervised SR thường tạo ảnh LR bằng cách áp dụng các phép suy giảm nhân tạo, chẳng hạn bicubic downsampling, lên ảnh HR. Tuy nhiên, ảnh LR thực tế thường không tuân theo một quá trình suy giảm cố định như vậy, dẫn đến khoảng cách giữa dữ liệu huấn luyện giả lập và ảnh thực tế.
+
+Một hướng tiêu biểu trong unsupervised SR là \textbf{zero-shot super-resolution}. Thay vì huấn luyện một mô hình tổng quát trên tập dữ liệu lớn, phương pháp này khai thác các mẫu lặp lại bên trong chính ảnh đầu vào. Ví dụ, ZSSR của Shocher et al. (2018) huấn luyện một mạng CNN nhỏ trực tiếp trên ảnh LR tại thời điểm suy luận, sử dụng các cặp mẫu được tạo ra từ chính ảnh đó. Cách tiếp cận này giúp mô hình thích nghi tốt hơn với từng ảnh cụ thể và không cần dữ liệu LR-HR ghép cặp bên ngoài.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image8.png}
+\caption{Hình X. So sánh giữa supervised SR huấn luyện trên nhiều cặp HR-LR bên ngoài và zero-shot SR huấn luyện trực tiếp từ các mẫu HR-LR trích xuất trong chính ảnh kiểm thử.}
+\end{figure}
+
+Ngoài ra, một nhóm phương pháp khác là \textbf{weakly-supervised hoặc unpaired SR}, trong đó mô hình học từ các tập ảnh LR và HR không ghép cặp. Các phương pháp này thường dựa trên ý tưởng image-to-image translation và cycle consistency. Chẳng hạn, CinCGAN của Yuan et al. (2018) sử dụng cấu trúc Cycle-in-Cycle GAN để xử lý bài toán SR khi không có cặp ảnh LR-HR và không biết rõ quá trình downsampling. Mô hình học cách chuyển ảnh LR thực tế sang một miền LR sạch hơn, sau đó thực hiện upsampling và tinh chỉnh đầu ra HR.
+
+Nhìn chung, unsupervised SR có ý nghĩa thực tế cao vì nó phù hợp hơn với điều kiện ảnh ngoài đời, nơi dữ liệu ghép cặp thường khó thu thập. Tuy nhiên, nhóm phương pháp này cũng khó huấn luyện ổn định hơn so với supervised SR vì thiếu ràng buộc trực tiếp từ ảnh ground truth. Do đó, các mô hình thường phải dựa vào các ràng buộc gián tiếp như cycle consistency, adversarial loss, degradation modeling hoặc internal image statistics để duy trì tính hợp lý của ảnh tái tạo.
+
+\subsection{Blind và Real-World Super-Resolution}
+
+Blind Super-Resolution và Real-World Super-Resolution tập trung vào các trường hợp quá trình suy giảm ảnh không được biết trước hoặc không thể mô tả chính xác bằng một phép giảm mẫu đơn giản như bicubic downsampling. Đây là tình huống phổ biến trong thực tế, vì ảnh LR có thể bị ảnh hưởng đồng thời bởi nhiều yếu tố như nhiễu cảm biến, nhòe chuyển động, nén JPEG, mất chi tiết do điều kiện ánh sáng yếu hoặc giới hạn của thiết bị thu nhận ảnh.
+
+Khác với các thiết lập SR cổ điển, nơi ảnh LR thường được tạo ra từ ảnh HR bằng một degradation cố định, blind SR giả định rằng quá trình suy giảm là phức tạp và không xác định rõ. Do đó, một nhóm phương pháp tập trung vào việc ước lượng quá trình suy giảm của ảnh (degradation), bao gồm các yếu tố như nhòe (blur), nhiễu (noise), mất chi tiết do giảm mẫu (downsampling) hoặc các biến dạng khác phát sinh trong quá trình thu nhận và xử lý ảnh, trước khi khôi phục ảnh. Ví dụ, IKC của Gu et al. (2019) đề xuất cơ chế Iterative Kernel Correction để ước lượng và điều chỉnh blur kernel trong bài toán blind SR. Ý tưởng chính là nếu kernel ước lượng chưa chính xác, ảnh tái tạo có thể bị quá sắc hoặc quá mượt, từ đó mô hình có thể lặp lại quá trình hiệu chỉnh kernel để cải thiện kết quả.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image9.png}
+\caption{Hình X. Minh họa phương pháp blind Super-Resolution dựa trên ước lượng kernel suy giảm và hiệu chỉnh lặp để khôi phục ảnh SR từ ảnh LR.}
+\end{figure}
+
+Một hướng khác trong real-world SR là xây dựng dữ liệu hoặc mô hình suy giảm gần với ảnh thực tế hơn. RealSR của Cai et al. (2019) xây dựng tập dữ liệu SR thực tế bằng cách chụp cùng một cảnh ở các mức tiêu cự khác nhau, sau đó căn chỉnh các cặp ảnh LR-HR. Cách này giúp giảm khoảng cách giữa dữ liệu huấn luyện giả lập và ảnh thực tế, mặc dù việc thu thập và căn chỉnh dữ liệu vẫn tương đối phức tạp.
+
+Bên cạnh đó, nhiều phương pháp sử dụng degradation synthesis để tạo ảnh LR có đặc điểm gần với ảnh thực tế. BSRGAN của Zhang et al. (2021) thiết kế một degradation model thực tế hơn bằng cách kết hợp nhiều dạng suy giảm như blur, downsampling, noise và JPEG compression theo thứ tự ngẫu nhiên. Tương tự, Real-ESRGAN của Wang et al. (2021) mở rộng ESRGAN cho bài toán real-world blind SR bằng cách sử dụng high-order degradation modeling, mô phỏng quá trình suy giảm phức tạp nhiều giai đoạn thường gặp trong ảnh thực tế.
+
+Nhìn chung, blind và real-world SR là hướng tiếp cận quan trọng vì phản ánh tốt hơn điều kiện ứng dụng ngoài đời, nơi degradation thường không rõ ràng và đa dạng. Tuy nhiên, đây cũng là một trong những hướng khó nhất của Image Super-Resolution. Mô hình không chỉ cần khôi phục chi tiết ảnh, mà còn phải tránh tạo ra các chi tiết giả hoặc không phù hợp với nội dung gốc. Vì vậy, các phương pháp trong nhóm này thường phải cân bằng giữa độ sắc nét thị giác, tính tự nhiên và độ trung thực của ảnh tái tạo.
+
+\subsection{Mô hình sinh}
+
+Bên cạnh các mô hình tối ưu chủ yếu theo độ chính xác điểm ảnh, nhiều nghiên cứu tập trung vào việc cải thiện chất lượng cảm nhận của ảnh tái tạo. Trong nhóm này, GAN-based SR và diffusion-based SR là hai hướng nổi bật.
+
+\subsubsection{GAN-based Super-Resolution}
+
+\textbf{Hạn chế của các mô hình tối ưu MSE.} Các mô hình supervised SR thời kỳ đầu như SRCNN, FSRCNN chủ yếu sử dụng hàm mất mát MSE (Mean Squared Error) hoặc L1 để tối thiểu hóa sai lệch điểm ảnh giữa ảnh tái tạo và ảnh ground truth. Cách tiếp cận này giúp mô hình đạt chỉ số PSNR cao, nhưng tồn tại một hạn chế bản chất: bài toán super-resolution là một \textit{ill-posed inverse problem} — từ cùng một ảnh độ phân giải thấp, có thể tồn tại nhiều ảnh độ phân giải cao hợp lý khác nhau. Khi đối mặt với sự bất định này, hàm MSE khuyến khích mô hình tính giá trị trung bình của tất cả các khả năng, dẫn đến ảnh đầu ra bị làm mịn quá mức (oversmoothed), mất đi các chi tiết tần số cao như kết cấu bề mặt, thớ vải, vân gỗ hay nếp nhăn.
+
+Sự khác biệt cốt lõi nằm ở hai mục tiêu tối ưu khác nhau: \textbf{độ chính xác điểm ảnh} (pixel accuracy) và \textbf{chất lượng cảm nhận} (perceptual quality). Các mô hình tối ưu MSE ưu tiên độ chính xác định lượng — ảnh đầu ra càng gần ground truth theo từng điểm ảnh càng tốt — nhưng kết quả thường thiếu tự nhiên và mờ nhạt. Ngược lại, mục tiêu chất lượng cảm nhận yêu cầu ảnh đầu ra trông sắc nét, tự nhiên và hợp lý đối với mắt người, ngay cả khi sai lệch điểm ảnh so với ground truth có thể lớn hơn. Đây là sự đánh đổi cơ bản giữa hai tiêu chí: PSNR cao không đồng nghĩa với chất lượng thị giác tốt.
+
+\textbf{Cơ chế GAN và sự đột phá của SRGAN.} Để vượt qua hạn chế này, SRGAN (Ledig et al., 2017) áp dụng cơ chế Mạng đối kháng tạo sinh (Generative Adversarial Network — GAN) vào bài toán super-resolution. Thay vì ép mô hình khớp từng pixel một cách máy móc, SRGAN sử dụng hai mạng nơ-ron hoạt động đối kháng: mạng sinh (Generator — $G$) nhận ảnh LR và cố gắng tạo ra ảnh HR giả sao cho giống thật nhất, còn mạng phân biệt (Discriminator — $D$) đóng vai trò người kiểm định, học cách phân biệt ảnh HR thật với ảnh do $G$ tạo ra. Mô hình toán học tổng quát của cơ chế đối kháng được biểu diễn qua hàm mục tiêu minimax:
+
+$$
+\min_{G} \max_{D} V(D, G) = \mathbb{E}_{I^{\text{HR}} \sim p_{\text{train}}(I^{\text{HR}})} [\log D(I^{\text{HR}})] + \mathbb{E}_{I^{\text{LR}} \sim p_{\text{G}}(I^{\text{LR}})} [\log (1 - D(G(I^{\text{LR}})))]
+$$
+
+Trong đó, $I^{\text{HR}}$ là ảnh ground truth, $I^{\text{LR}}$ là ảnh đầu vào độ phân giải thấp, $G(I^{\text{LR}})$ là ảnh super-resolution do mạng sinh tạo ra, và $D(\cdot)$ là xác suất mạng phân biệt cho rằng ảnh đầu vào là ảnh thật. Quá trình huấn luyện lặp lại liên tục: $G$ ngày càng tạo ra ảnh chân thực hơn để lừa $D$, trong khi $D$ ngày càng phát hiện lỗi tinh vi hơn. Cơ chế cạnh tranh này ép $G$ không chỉ tái tạo cấu trúc hình học mà còn phải tạo ra các chi tiết có phân bố thống kê gần với ảnh tự nhiên, từ đó cải thiện đáng kể chất lượng cảm nhận so với các mô hình chỉ dùng MSE.
+
+Hướnng tiếp cận này giúp cải thiện chất lượng thị giác, đặc biệt ở các hệ số phóng đại lớn, nơi các chi tiết tần số cao cần được suy luận nhiều hơn. Tuy nhiên, hạn chế là mô hình có thể sinh ra những chi tiết nhìn hợp lý nhưng không hoàn toàn chính xác so với ảnh gốc (hallucination), và quá trình huấn luyện GAN thường kém ổn định hơn so với các mô hình regression-based.
+
+\subsubsection{Diffusion-based Super-Resolution}
+
+Diffusion-based SR là hướng tiếp cận mới hơn, trong đó ảnh độ phân giải cao được tạo ra thông qua quá trình khử nhiễu lặp lại có điều kiện trên ảnh LR. Nhóm phương pháp này có khả năng tạo ảnh có chất lượng cảm nhận cao và chi tiết phong phú, đặc biệt khi kết hợp với các generative priors từ mô hình lớn. Tuy nhiên, diffusion-based SR thường có chi phí tính toán cao hơn do quá trình suy luận cần nhiều bước lấy mẫu, mặc dù các nghiên cứu gần đây đang tập trung cải thiện tốc độ và hiệu quả của hướng tiếp cận này.
+
+\subsection{Transformer-based Super-Resolution}
+
+Mặc dù ban đầu được phát triển chủ yếu cho các bài toán xử lý ngôn ngữ tự nhiên (NLP), kiến trúc Transformer trong những năm gần đây đã tạo ra một bước tiến vượt bậc trong lĩnh vực thị giác máy tính, bao gồm cả bài toán siêu phân giải ảnh (Image Super-Resolution). Sự chuyển dịch này bắt nguồn từ khả năng nắm bắt bối cảnh toàn cục và giải quyết các giới hạn cố hữu của mạng nơ-ron tích chập (CNN).
+
+\subsubsection{Cơ chế hoạt động và ưu điểm cốt lõi}
+
+Trái ngược với các mô hình CNN truyền thống - vốn bị giới hạn bởi kích thước trường tiếp nhận cục bộ (local receptive field) của các bộ lọc tích chập, Transformer có khả năng mô hình hóa bối cảnh toàn cục (global context) một cách linh hoạt. Thông qua cơ chế tự chú ý (self-attention), mỗi điểm ảnh trong ảnh đầu vào có thể tự động đánh giá tầm quan trọng tương đối của nó so với tất cả các điểm ảnh khác, bất kể khoảng cách không gian.
+
+Khả năng mô hình hóa mối quan hệ dài hạn (long-range dependencies) này mang lại lợi thế vượt trội trong việc khôi phục các chi tiết phức tạp, các hoa văn lặp lại, hoặc duy trì tính nhất quán về mặt cấu trúc trên diện rộng. Hơn nữa, Transformer có định kiến quy nạp (inductive bias) thấp hơn so với CNN, cho phép mô hình học các biểu diễn phong phú hơn trực tiếp từ dữ liệu thay vì bị gò bó bởi các giả định hình học không gian cố định.
+
+\subsubsection{Các mô hình tiêu biểu}
+
+Sự thành công của Transformer trong siêu phân giải ảnh được đánh dấu bởi sự ra đời của nhiều kiến trúc đột phá. Trong đó tiêu biểu nhất bao gồm:
+
+\begin{itemize}
+\item \textbf{SwinIR:} Là mô hình tiên phong ứng dụng Swin Transformer vào phục hồi ảnh. Nhận thấy self-attention toàn cục yêu cầu chi phí tính toán tăng theo cấp số nhân với kích thước ảnh, SwinIR áp dụng cơ chế chú ý theo cửa sổ dịch chuyển (shifted window attention). Kỹ thuật này chia ảnh thành các cửa sổ cục bộ để tính toán self-attention, sau đó dịch chuyển cửa sổ ở các lớp tiếp theo nhằm trao đổi thông tin xuyên vùng. Cách tiếp cận này giúp giảm đáng kể độ phức tạp tính toán mà vẫn duy trì được hiệu năng tái tạo vượt trội so với CNN.
+\end{itemize}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image11.png}
+\caption{HAT (Hybrid Attention Transformer):** Kế thừa từ SwinIR, mô hình HAT ra đời để giải quyết bài toán thông tin giữa các cửa sổ rời rạc vẫn chưa được liên kết thực sự chặt chẽ. HAT đề xuất kiến trúc lai kết hợp giữa tự chú ý không gian (Window-based Self-Attention) và chú ý theo kênh (Channel Attention - lấy cảm hứng từ CNN) để khai thác trọng số kênh toàn cục. Ngoài ra, một module có tên Overlapping Cross-Attention được bổ sung nhằm tăng cường tương tác trực tiếp giữa các vùng cửa sổ lân cận. Việc kết hợp này giúp HAT tái tạo chi tiết sắc nét và loại bỏ hiện tượng lỗi khối (blocking artifacts) cực kỳ hiệu quả, thiết lập các kỷ lục hiệu suất mới trên nhiều tập dữ liệu benchmark.}
+\end{figure}
+
+\subsubsection{Hạn chế và thách thức}
+
+Mặc dù thể hiện chất lượng phục hồi hình ảnh sắc nét và chân thực, các mô hình dựa trên Transformer vẫn tồn tại một số hạn chế đáng kể:
+
+\begin{itemize}
+\item \textbf{Yêu cầu dữ liệu lớn:} Do có inductive bias thấp, Transformer yêu cầu một lượng dữ liệu huấn luyện khổng lồ để học được các đặc trưng chính xác (thường đòi hỏi phải tiền huấn luyện trên tập dữ liệu quy mô lớn như ImageNet).
+\item \textbf{Chi phí tài nguyên và tính toán:} Các kiến trúc Transformer thường có khối lượng tham số lớn, tiêu tốn nhiều dung lượng bộ nhớ và thời gian huấn luyện. Điều này khiến việc triển khai chúng trên các thiết bị di động có tài nguyên hạn chế hoặc trong các hệ thống yêu cầu xử lý thời gian thực gặp rất nhiều khó khăn.
+\item \textbf{Giới hạn phần cứng:} Dù đã áp dụng cơ chế chia cửa sổ, việc đưa các ảnh đầu vào có độ phân giải gốc quá lớn vào mô hình vẫn có thể dẫn đến hiện tượng tràn bộ nhớ GPU (Out-of-memory).
+\end{itemize}
+
+Để giải quyết những thách thức trên, hệ sinh thái nghiên cứu hiện tại đang tập trung phát triển các biến thể Transformer tinh gọn (lightweight transformers) nhằm giảm tải chi phí tham số trong khi vẫn giữ được độ chính xác cao. Đồng thời, xu hướng thiết kế các mô hình lai (Hybrid architectures) - kết hợp giữa CNN để trích xuất đặc trưng cục bộ nhanh chóng và Transformer để mô hình hóa toàn cục - đang được xem là giải pháp tiềm năng để cân bằng hoàn hảo giữa hiệu năng và chi phí tính toán.
+
+\subsection{Domain-Specific Super-Resolution}
+
+Domain-specific Super-Resolution tập trung vào các miền dữ liệu hoặc bối cảnh ứng dụng cụ thể, nơi ảnh có đặc trưng riêng và yêu cầu khôi phục khác với ảnh tự nhiên thông thường. Một số hướng tiêu biểu gồm face super-resolution, video super-resolution, hyperspectral image super-resolution, medical image super-resolution và remote sensing image super-resolution.
+
+Trong face super-resolution, mô hình có thể khai thác các prior đặc thù của khuôn mặt như landmark, cấu trúc vùng mặt hoặc thông tin định danh để hỗ trợ tái tạo chi tiết. Trong video super-resolution, mô hình không chỉ sử dụng thông tin không gian trong một frame mà còn tận dụng thông tin thời gian từ các frame lân cận. Trong hyperspectral hoặc remote sensing super-resolution, mô hình cần xử lý đồng thời thông tin không gian và thông tin phổ, do đó có yêu cầu khác với ảnh RGB thông thường.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image12.png}
+\caption{Hình X :Face Super-Resolution thông qua identity features và distilling facial prior knowledge}
+\end{figure}
+
+Ưu điểm của domain-specific SR là có thể tận dụng tri thức đặc thù của từng miền dữ liệu để cải thiện chất lượng tái tạo. Tuy nhiên, các mô hình này thường khó tổng quát sang miền dữ liệu khác nếu đặc trưng ảnh, mục tiêu ứng dụng hoặc quá trình suy giảm thay đổi đáng kể.
+
+\subsection{Nhận xét chung}
+
+Tổng hợp từ các khảo sát hiện có, có thể thấy Image Super-Resolution đã phát triển từ các phương pháp truyền thống dựa trên giả định thủ công sang các mô hình học sâu có khả năng học trực tiếp quan hệ giữa ảnh LR và HR. Supervised SR vẫn là hướng nghiên cứu chủ đạo nhờ thiết lập rõ ràng và hiệu quả tốt trên benchmark. Tuy nhiên, unsupervised SR, blind/real-world SR và domain-specific SR ngày càng được quan tâm vì chúng phản ánh tốt hơn các điều kiện thực tế. Đồng thời, các mô hình sinh như GAN và diffusion model mở rộng mục tiêu của SR từ việc tối ưu độ chính xác điểm ảnh sang cải thiện chất lượng cảm nhận, mặc dù vẫn cần cân bằng giữa tính chân thực thị giác và độ trung thực nội dung.
+
+\section{Các mô hình tiêu biểu trong Image Super-Resolution}
+
+Bên cạnh việc phân loại các hướng tiếp cận, việc xem xét một số mô hình tiêu biểu giúp làm rõ hơn quá trình phát triển của Image Super-Resolution. Mỗi mô hình thường đại diện cho một giai đoạn hoặc một cách tiếp cận quan trọng trong lĩnh vực này, từ các mô hình CNN đầu tiên, các kiến trúc sâu hơn, đến các mô hình sinh hiện đại.
+
+Trong số đó, SRCNN là một mô hình nền tảng vì đã chứng minh khả năng sử dụng mạng nơ-ron tích chập để học trực tiếp ánh xạ từ ảnh độ phân giải thấp sang ảnh độ phân giải cao. Các mô hình sau này tiếp tục cải thiện chất lượng tái tạo thông qua mạng sâu, cơ chế residual learning, attention hoặc mô hình sinh. Gần đây, các mô hình diffusion như SR3 cho thấy một hướng tiếp cận mới, trong đó ảnh độ phân giải cao được tạo ra thông qua quá trình khử nhiễu lặp lại có điều kiện trên ảnh đầu vào.
+
+Do đó, phần này sẽ trình bày một số mô hình tiêu biểu nhằm minh họa các thay đổi quan trọng trong cách giải quyết bài toán Image Super-Resolution.
+
+\subsection{Các mô hình theo dòng kiến trúc CNN}
+
+\subsubsection{SRCNN (Image Super-Resolution Using Deep Convolutional Networks, Dong et al. 2015)}
+
+Các phương pháp truyền thống (như mã hóa thưa - sparse coding) thường chia quá trình giải quyết thành nhiều bước tách biệt và hiếm khi tối ưu hóa đồng thời toàn bộ hệ thống. Các tác giả nhận thấy đường ống (pipeline) của phương pháp mã hóa thưa tương đương với một mạng nơ-ron tích chập sâu, từ đó có động lực xây dựng một mô hình tối ưu hóa trực tiếp từ đầu đến cuối.
+Giải pháp là sử dụng mạng nơ-ron tích chập (CNN) để học trực tiếp một ánh xạ từ đầu đến cuối (end-to-end) giữa hình ảnh độ phân giải thấp và hình ảnh độ phân giải cao. Thay vì học các từ điển một cách rõ ràng như các phương pháp cũ, SRCNN ngầm học chúng thông qua các lớp ẩn (hidden layers) và tối ưu hóa đồng thời tất cả các lớp.
+
+\paragraph{Cấu tạo mạng}
+
+Trước khi đưa vào mạng, ảnh đầu vào bị mờ được phóng to bằng phép nội suy bicubic lên kích thước mong muốn. Mạng SRCNN bao gồm 3 phần chính tương đương với 3 lớp tích chập:
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image13.png}
+\caption{Minh hoạ ba lớp của SRCNN}
+\end{figure}
+
+\begin{enumerate}
+\item Trích xuất bản vá và biểu diễn (Patch extraction and representation)
+\end{enumerate}
+
+Nhiệm vụ: Trích xuất các bản vá (patches) chồng chéo từ hình ảnh độ phân giải thấp đã qua nội suy và biểu diễn mỗi bản vá dưới dạng một vector đặc trưng nhiều chiều (tạo thành một tập hợp các bản đồ đặc trưng - feature maps).
+
+Cơ chế hoạt động: Lớp này áp dụng n1 bộ lọc (filters) có kích thước c×f1×f1 (với c là số kênh màu, ví dụ c=1 cho ảnh xám) lên toàn bộ bức ảnh. Sau khi tích chập, kết quả sẽ đi qua hàm kích hoạt phi tuyến ReLU để tạo ra các khối đặc trưng n1 chiều.
+
+Ý nghĩa: Trong các phương pháp truyền thống như mã hóa thưa (sparse coding), bước này hoàn toàn tương đương với việc chiếu (project) các bản vá hình ảnh lên một "từ điển độ phân giải thấp" (low-resolution dictionary) để tìm ra các đặc trưng cơ bản như cạnh, góc, hoặc kết cấu (texture).
+
+\begin{enumerate}
+\item Ánh xạ phi tuyến tính (Non-linear mapping)
+\end{enumerate}
+
+Nhiệm vụ: Thực hiện ánh xạ phi tuyến tính các vector đặc trưng n1 chiều (từ lớp thứ nhất) sang một không gian đặc trưng mới gồm các vector n2 chiều.
+
+Cơ chế hoạt động: Lớp này sử dụng n2 bộ lọc với kích thước thường là 1×1, 3×3 hoặc 5×5. Về mặt khái niệm, mỗi vector n2 chiều đầu ra chính là một "biểu diễn" của một bản vá ở độ phân giải cao,. Việc sử dụng bộ lọc không gian lớn hơn (như 3×3 hoặc 5×5) hoặc thêm nhiều lớp ánh xạ giúp tận dụng thông tin vùng lân cận và tăng tính phi tuyến, từ đó có thể cải thiện chất lượng ảnh,.
+
+Ý nghĩa: Lớp này đóng vai trò như một bộ giải mã hóa thưa (sparse coding solver). Tuy nhiên, thay vì phải chạy các thuật toán tối ưu hóa lặp đi lặp lại rất tốn thời gian như phương pháp cũ, SRCNN thực hiện quá trình này thông qua tính toán truyền thẳng (feed-forward) nên tốc độ nhanh hơn rất nhiều và được tối ưu hóa toàn diện trong quá trình học
+
+\begin{enumerate}
+\item Tái tạo (Reconstruction)
+\end{enumerate}
+
+Nhiệm vụ: Tổng hợp các biểu diễn bản vá độ phân giải cao (từ bước ánh xạ) để tái tạo ra hình ảnh độ phân giải cao hoàn chỉnh và sắc nét cuối cùng,.
+
+Cơ chế hoạt động: Lớp cuối cùng này cũng là một phép tích chập sử dụng c bộ lọc có kích thước n2×f3×f3. Nếu các đặc trưng ở bước 2 tồn tại dưới dạng các hệ số cơ sở, lớp này sẽ đóng vai trò như một bộ lọc lấy trung bình (averaging filter) trên không gian ảnh,.
+
+Ý nghĩa: Tương đương với bước cuối của phương pháp mã hóa thưa, nơi các hệ số được chiếu lên "từ điển độ phân giải cao" và tính trung bình tại các vùng bản vá chồng chéo (overlapping patches) để tạo ra bức ảnh mượt mà, không bị lỗi viền.
+
+\paragraph{Huấn luyện và thực nghiệm}
+
+Nhóm tác giả so sánh việc huấn luyện trên tập 91 hình ảnh cơ bản (chia thành khoảng 24.800 bản vá) và tập ImageNet khổng lồ (gồm 395.909 hình ảnh, tạo ra hơn 5 triệu bản vá). Mạng SRCNN cơ bản rất nhỏ (chỉ 8.032 tham số) nên nó không hề bị quá khớp (overfit) ngay cả khi chỉ dùng 91 hình ảnh.
+
+Mặc dù tập 91 ảnh đã chứa đủ sự đa dạng của ảnh tự nhiên, việc dùng ImageNet vẫn giúp cải thiện hiệu suất, nâng điểm PSNR trung bình từ 32.39 dB lên 32.52 dB trên tập kiểm tra Set5. Do đó, ImageNet được chọn làm tập dữ liệu mặc định.
+
+Tăng số lượng bộ lọc (ví dụ: từ n1=64,n2=32 lên n1=128,n2=64) giúp tăng chất lượng ảnh (PSNR lên 32.60 dB) nhưng tốn thời gian chạy hơn. Dù giảm xuống kích thước siêu nhỏ (n1=32,n2=16), mô hình vẫn đạt 32.26 dB, cao hơn phương pháp SC truyền thống (31.42 dB).
+Việc mở rộng bộ lọc giúp mạng nắm bắt được nhiều thông tin lân cận hơn. Khi nâng cấp cấu hình mạng cơ bản (kí hiệu là 9-1-5) lên các cấu hình có bộ lọc lớn hơn như 9-3-5 hoặc 9-5-5, PSNR tăng đáng kể (đạt 32.75 dB cho 9-5-5). Tuy nhiên, 9-5-5 có tới 57.184 tham số, gấp đôi 9-3-5 và làm giảm tốc độ chạy, do đó người dùng cần đánh đổi giữa tốc độ và hiệu suất.
+Điểm đặc biệt của SRCNN là \textbf{"sâu hơn không phải lúc nào cũng tốt hơn"}. Việc thêm lớp ánh xạ thứ 4 (ví dụ 9-1-1-5) hoặc thứ 5 vào mạng khiến mô hình hội tụ chậm hơn rất nhiều. Đôi khi, chất lượng ảnh đầu ra bị giảm sút hoặc mạng bị kẹt ở các cực tiểu cục bộ (bad local minimum) do thiếu các lớp gộp (pooling) hoặc lớp kết nối đầy đủ (fully-connected) để ổn định quá trình học. Do đó, kiến trúc 3 lớp vẫn là tối ưu nhất.
+
+Đo lường toàn diện: SRCNN (cấu hình 9-5-5) đánh bại hoàn toàn các phương pháp hàng đầu lúc bấy giờ (như SC, NE+LLE, ANR, A+, KK) trên 3 tập dữ liệu chuẩn là Set5, Set14 và BSD200 ở các tỷ lệ phóng to x2, x3, x4. Trung bình với tỷ lệ x3, SRCNN vượt qua phương pháp tốt thứ hai (A+) từ 0.13 dB đến 0.17 dB.
+
+Chất lượng thị giác và Tốc độ: Ảnh do SRCNN tạo ra có viền sắc nét hơn và ít nhiễu giả (artifacts) nhất. Hơn nữa, với kiến trúc truyền thẳng (feed-forward) hoàn toàn, không cần giải các bài toán tối ưu lặp đi lặp lại ở khâu sử dụng, SRCNN đạt tốc độ rất nhanh so với các đối thủ (bản 9-1-5 có thể coi là vượt trội về tính thực tiễn).
+
+\subsubsection{FSRCNN (Accelerating the Super-Resolution Convolutional Neural Network, Dong et al. 2016)}
+
+Dù mạng SRCNN mang lại chất lượng phục hồi ảnh xuất sắc và tốc độ tốt với kiến trúc truyền thẳng, nhưng nhóm tác giả vẫn chưa thoả mãn. Họ giới thiệu FSRCNN (Fast SRCNN) với những cải tiến mới, cho phép mô hình đạt được tốc độ gấp nhiều lần mô hình tiền nhiệm mà không cần phải đánh đổi chất lượng hình ảnh.
+
+Nhóm tác giả phát hiện ra 2 rào cản chính trong kiến trúc SRCNN:
+
+1. Phép nội suy tiền xử lý: SRCNN yêu cầu ảnh đầu vào (Low-Resolution - LR) phải được phóng to bằng phép nội suy bicubic lên kích thước mong muốn trước khi đưa vào mạng. Việc này khiến toàn bộ mạng phải thực hiện tính toán trên không gian ảnh lớn (High-Resolution - HR), làm cho độ phức tạp tính toán tăng theo cấp số nhân với kích thước ảnh đích.
+2. Lớp ánh xạ phi tuyến đắt đỏ: Việc ánh xạ trực tiếp từ không gian đặc trưng LR nhiều chiều sang không gian đặc trưng HR tốn rất nhiều tham số. Mạng SRCNN-Ex (bản mở rộng) có tới 57.184 tham số (gấp 6 lần bản thường) để tăng độ chính xác, khiến tốc độ càng chậm hơn.
+
+Để giải quyết bài toán tăng tốc mà không làm giảm chất lượng, nhóm tác giả đã thiết kế lại mạng thành một cấu trúc hình đồng hồ cát (hourglass-shape) gọn nhẹ thông qua 3 thay đổi chiến lược:
+
+1. Đưa bước phóng to ảnh về cuối mạng: Bỏ hoàn toàn phép nội suy ở đầu vào. Mạng nhận trực tiếp ảnh gốc độ phân giải thấp và sử dụng một lớp giải tích chập (Deconvolution layer) ở cuối cùng để phóng to ảnh. Nhờ đó, phần lớn các phép tính tích chập đều diễn ra trên ảnh nhỏ.
+\begin{enumerate}
+\item Cấu trúc Thu nhỏ - Ánh xạ - Mở rộng: Thay vì ánh xạ trực tiếp trên không gian nhiều chiều, mạng thu hẹp (shrink) số chiều của đặc trưng đầu vào trước khi ánh xạ, và sau đó mở rộng (expand) lại số chiều trước khi đưa vào lớp giải tích chập.
+\item Bộ lọc nhỏ hơn nhưng sâu hơn: Chia nhỏ lớp ánh xạ khổng lồ thành nhiều lớp liên tiếp với kích thước bộ lọc chỉ 3×3.
+\end{enumerate}
+
+\paragraph{Cấu tạo mạng}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image14.png}
+\caption{FSRCNN với 4 lớp tích chập và 1 lớp giải tích chập}
+\end{figure}
+
+Sau mỗi lớp tích chập, FSRCNN dùng hàm kích hoạt PReLU (Parametric ReLU). Khác với ReLU gán cứng phần âm bằng 0 (dễ gây ra hiện tượng "đặc trưng chết" - dead features do gradient bằng 0), PReLU có thêm một hệ số học được ở phần âm. Điều này giúp tận dụng tối đa tham số của mạng, tạo ra sự ổn định và có thể coi là giới hạn trên (up-bound) về hiệu suất so với ReLU.
+
+Bốn phần đầu tiên (feature extraction, shrinking, mapping, expanding) có thể đóng vai trò như một bộ trích xuất đặc trưng chung cho mọi ảnh LR, hoàn toàn độc lập với tỷ lệ phóng to. Khi bạn muốn mạng học một tỷ lệ phóng to mới (ví dụ từ x2 sang x3), bạn có thể giữ nguyên trọng số của 4 phần đầu và \textbf{chỉ cần tinh chỉnh (fine-tune) duy nhất lớp Deconvolution cuối cùng}. Quá trình này chỉ tốn vài giờ thay vì huấn luyện lại toàn bộ mạng.
+
+\begin{enumerate}
+\item Trích xuất đặc trưng (Feature extraction)
+\end{enumerate}
+
+\begin{itemize}
+\item Ký hiệu toán học: Conv(5,d,1).
+\item Chi tiết hoạt động: Lớp này nhận trực tiếp ảnh gốc độ phân giải thấp (LR) chưa qua nội suy làm đầu vào. SRCNN trước đây dùng bộ lọc 9×9 trên ảnh đã được phóng to. Tuy nhiên, vì FSRCNN thao tác trên ảnh LR gốc (kích thước nhỏ), một bản vá 5×5 trên ảnh gốc đã có thể bao quát lượng thông tin gần tương đương với một bản vá 9×9 trên ảnh nội suy.
+\item Vai trò: Giúp trích xuất ra d bản đồ đặc trưng (kênh) mà gần như không làm mất thông tin, đồng thời giảm đáng kể không gian tính toán so với việc dùng bộ lọc lớn.
+\end{itemize}
+
+\begin{enumerate}
+\item Thu nhỏ (Shrinking)
+\end{enumerate}
+
+\begin{itemize}
+\item Ký hiệu toán học: Conv(1,s,d).
+\item Chi tiết hoạt động: Trong cấu trúc cũ, việc ánh xạ trực tiếp từ không gian đặc trưng LR có số chiều d (rất lớn) tốn chi phí tính toán cực cao. FSRCNN chèn thêm một lớp tích chập với các bộ lọc kích thước không gian cực nhỏ là 1×1.
+\item Vai trò: Bộ lọc 1×1 hoạt động như một phép kết hợp tuyến tính (linear combination) trên các đặc trưng LR, giúp ép/giảm số chiều đặc trưng từ d xuống còn s (với s$\\ll$d). Đây là nút thắt "cổ chai" của đồng hồ cát, quyết định việc cắt giảm triệt để số lượng tham số của mạng lưới.
+\end{itemize}
+
+\begin{enumerate}
+\item Ánh xạ phi tuyến (Non-linear mapping)
+\end{enumerate}
+
+\begin{itemize}
+\item Ký hiệu toán học: m×Conv(3,s,s).
+\item Chi tiết hoạt động: Đây là bước quan trọng nhất quyết định chất lượng siêu độ phân giải. Thay vì dùng một lớp duy nhất nhưng thật rộng (như bản SRCNN-Ex khổng lồ), FSRCNN dùng một chuỗi gồm m lớp tích chập liên tiếp nhau. Mỗi lớp đều giữ nguyên số kênh là s và dùng bộ lọc kích thước vừa phải 3×3.
+\item Vai trò: Thiết kế này chứng minh rằng việc dùng nhiều lớp "hẹp" (nhiều lớp 3×3 nối tiếp) mang lại hiệu quả tái tạo tốt hơn và ít tốn tham số hơn so với việc dùng một lớp "rộng" (một lớp 5×5). Nó duy trì độ sâu học sâu cần thiết trong khi vẫn đảm bảo mạng chạy nhanh.
+\end{itemize}
+
+\begin{enumerate}
+\item Mở rộng (Expanding)
+\end{enumerate}
+
+\begin{itemize}
+\item Ký hiệu toán học: Conv(1,d,s).
+\item Chi tiết hoạt động: Đây là quá trình đảo ngược của bước Shrinking. Lớp này sử dụng các bộ lọc 1×1 để ánh xạ từ không gian s chiều trở lại không gian d chiều ban đầu.
+\item Vai trò: Đảm bảo độ phong phú của dữ liệu trước khi khôi phục ảnh. Tác giả phát hiện ra rằng, nếu bỏ qua lớp này và tái tạo ảnh trực tiếp từ dữ liệu s chiều bị thu nhỏ, chất lượng khôi phục cuối cùng (PSNR) sẽ bị tụt giảm nghiêm trọng (lên tới 0.3 dB trên tập dữ liệu Set5).
+\end{itemize}
+
+\begin{enumerate}
+\item Giải tích chập (Deconvolution)
+\end{enumerate}
+
+\begin{itemize}
+\item Ký hiệu toán học: DeConv(9,1,d).
+\item Chi tiết hoạt động: Phép giải tích chập có thể coi là phép đảo ngược của tích chập. Nếu tích chập với bước nhảy (stride) k thu nhỏ ảnh đi k lần, thì giải tích chập với bước nhảy k sẽ phóng to ảnh lên k lần. FSRCNN cài đặt k=n (với n là tỷ lệ phóng to mong muốn). Kích thước bộ lọc được chọn là 9×9.
+\item Giải thích lựa chọn 9×9: Tính đối xứng mạng. Nếu bạn "chạy lùi" mạng FSRCNN từ ảnh độ phân giải cao (HR) xuống ảnh độ phân giải thấp (LR), thì lớp giải tích chập này sẽ biến thành một lớp tích chập tiêu chuẩn làm nhiệm vụ trích xuất đặc trưng từ ảnh HR. Chức năng đó hoàn toàn tương đồng với lớp đầu tiên của mạng SRCNN gốc (cũng dùng bộ lọc 9×9).
+\item Vai trò: Thay vì nội suy thủ công bằng một nhân bicubic đồng nhất cho mọi ảnh, lớp này tự động học một tập hợp các nhân phóng to (upsampling kernels) phức tạp và đa dạng. Nếu ép các nhân này phải giống hệt nhau, chất lượng ảnh sẽ bị rớt ít nhất 0.9 dB.
+\end{itemize}
+
+\paragraph{Huấn luyện và thực nghiệm}
+
+Tác giả nhận thấy tập 91 hình ảnh tiêu chuẩn không đủ để phát huy tối đa sức mạnh của mô hình sâu. Do đó, họ tạo thêm một tập General-100 gồm 100 ảnh định dạng BMP không bị nén, có viền cực kỳ sắc nét và ít vùng trơn láng, cực kỳ lý tưởng cho bài toán siêu độ phân giải.
+Để tránh overfit, toàn bộ ảnh được tăng cường bằng cách thu nhỏ (các tỷ lệ 0.9, 0.8, 0.7, 0.6) và xoay (90, 180, 270 độ). Cách này giúp lượng dữ liệu huấn luyện tăng lên gấp 19 lần.
+
+Khác với SRCNN gốc không dùng padding, FSRCNN sử dụng zero-padding ở tất cả các lớp tích chập. Điều này giúp kích thước ảnh không bị thu hẹp sau mỗi lớp, do đó không cần thay đổi kích thước bản vá (sub-images) đầu vào khi thay đổi cấu hình mạng.
+Ảnh độ phân giải thấp (LR) chưa qua nội suy và ảnh độ phân giải cao (HR) tương ứng được cắt thành các bản vá nhỏ. Do đặc tính của lớp giải tích chập (deconvolution) sinh ra viền lỗi, dữ liệu HR được cắt bỏ đi n-1 pixel ở viền (với n là tỷ lệ phóng to).
+
+Mạng vẫn sử dụng hàm mất mát MSE (Mean Squared Error) thông qua thuật toán lan truyền ngược. Tốc độ học (Learning rate) được đặt là 10\textasciicircum{}-3 cho các lớp tích chập và nhỏ hơn là 10\textasciicircum{}-4 cho lớp giải tích chập cuối cùng.
+
+Đầu tiên, mạng được huấn luyện từ đầu bằng tập 91 ảnh. Khi đã đạt đến trạng thái bão hòa, tập General-100 mới được đưa vào để tinh chỉnh (fine-tuning), đồng thời giảm một nửa tốc độ học của tất cả các lớp. Chiến lược này giúp mạng hội tụ nhanh và đạt điểm số cao hơn.
+
+Các lớp tích chập dùng hàm PReLU được khởi tạo trọng số theo phương pháp He (chuyên dùng cho PReLU). Riêng lớp giải tích chập cuối cùng khởi tạo từ phân phối Gaussian với trung bình bằng 0, độ lệch chuẩn 0.001.
+
+Đánh giá bằng PSNR, SSIM, và IFC trên 3 tập dữ liệu tiêu chuẩn: Set5, Set14, BSD200. Trên tiêu chí thời gian chạy, FSRCNN bỏ xa mọi đối thủ, nhanh hơn ít nhất 40 lần so với SRCNN-Ex, SRF hay mạng SCN (tại tỷ lệ x3). FSRCNN vượt qua tất cả các phương pháp tốt nhất lúc bấy giờ trên các chỉ số định lượng. Hình ảnh khôi phục từ FSRCNN vô cùng sắc nét và rõ ràng, mặc dù ở phiên bản siêu nhỏ FSRCNN-s, người dùng có thể nhận thấy đôi chút hiện tượng "nhiễu viền" (jaggies/ringing effects) khi so sánh với các bản cấu hình lớn.
+
+\subsection{Các mô hình dựa trên Transformer}
+
+Nếu các mô hình CNN (như SRCNN, FSRCNN) tập trung vào các đặc trưng cục bộ thông qua các phép tích chập, thì các mô hình dựa trên Transformer tận dụng cơ chế Tự chú ý (Self-Attention) để nắm bắt mối quan hệ xa và bối cảnh toàn cục của ảnh. Dưới đây là các mô hình tiêu biểu đại diện cho xu hướng này.
+
+\subsubsection{SwinIR (Image Restoration Using Swin Transformer, Liang et al. 2021)}
+
+SwinIR là một mô hình nền tảng mạnh mẽ cho bài toán phục hồi ảnh được Liang và các cộng sự đề xuất vào năm 2021. Khác với các mô hình Vision Transformer (ViT) tiêu chuẩn thường chia ảnh đầu vào thành các phần có kích thước cố định và xử lý độc lập - điều dễ gây ra lỗi viền và làm mất thông tin lân cận, SwinIR tích hợp kiến trúc Swin Transformer với cơ chế tự chú ý cục bộ (local attention) và cửa sổ dịch chuyển (shifted window). Cách tiếp cận này giúp mô hình vừa có khả năng xử lý ảnh kích thước lớn như CNN, vừa có thể mô hình hóa mối quan hệ dài hạn của Transformer.
+
+\paragraph{Cấu tạo mạng}
+
+Kiến trúc của SwinIR bao gồm ba module chính: Trích xuất đặc trưng nông, Trích xuất đặc trưng sâu và Tái tạo ảnh chất lượng cao.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image15.png}
+\caption{Sơ đồ Kiến trúc tổng thể SwinIR}
+\end{figure}
+
+\textbf{1. Trích xuất đặc trưng nông (Shallow Feature Extraction)}
+
+\begin{itemize}
+\item \textbf{Cơ chế hoạt động:} SwinIR sử dụng một lớp tích chập 33 để trích xuất các đặc trưng cơ bản F0 từ ảnh đầu vào chất lượng thấp ILQ.
+\item \textbf{Ý nghĩa:} Lớp tích chập này đặc biệt xuất sắc trong việc xử lý thị giác ở giai đoạn đầu, giúp tối ưu hóa mạng ổn định hơn. Nó không chỉ ánh xạ không gian ảnh đầu vào sang một không gian đặc trưng có số chiều cao hơn mà còn bảo toàn tốt các thông tin tần số thấp. Đặc trưng nông F0 này sau đó được truyền thẳng đến module tái tạo ảnh thông qua một kết nối tắt (skip connection) dài.
+\end{itemize}
+
+\textbf{2. Trích xuất đặc trưng sâu (Deep Feature Extraction)}
+
+Đây là thành phần cốt lõi của SwinIR, chịu trách nhiệm khôi phục các thông tin tần số cao bị thiếu hụt. Nó bao gồm một chuỗi K khối thặng dư Residual Swin Transformer Block (RSTB) và kết thúc bằng một lớp tích chập 33.
+
+\begin{itemize}
+\item \textbf{Khối Residual Swin Transformer Block (RSTB):} Mỗi khối RSTB chứa L lớp Swin Transformer (STL) và một lớp tích chập ở cuối, kết hợp cùng kết nối thặng dư (residual connection). Việc đặt một lớp tích chập ở cuối khối Transformer giúp mang lại định kiến quy nạp (inductive bias) của phép tích chập (như tính bất biến dịch chuyển) vào mạng Transformer, đồng thời kết nối thặng dư giúp việc tập hợp các đặc trưng ở nhiều cấp độ khác nhau trở nên mượt mà hơn.
+\end{itemize}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image16.png}
+\caption{Hình?: Cấu tạo chi tiết khối RSTB}
+\end{figure}
+
+\begin{itemize}
+\item \textbf{Lớp Swin Transformer (STL):} Thay vì tính toán Self-Attention trên toàn bộ ảnh (chi phí tính toán là O(N2)), STL tính toán sự chú ý trong các cửa sổ cục bộ (local windows) không chồng lấn kích thước MM. Để giải quyết vấn đề thiếu liên kết giữa các cửa sổ, SwinIR áp dụng cơ chế cửa sổ dịch chuyển (shifted window). Theo đó, đặc trưng sẽ được dịch chuyển đi một khoảng (M/2, M/2) pixel ở các lớp xen kẽ, cho phép trao đổi thông tin xuyên suốt giữa các vùng lân cận.
+\end{itemize}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image17.png}
+\caption{Hình?: Cấu tạo chi tiết lớp STL}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image18.png}
+\caption{Hình?: Cơ chế Shifted Window Partitioning (ref: Swin Transformer (Ze Liu et al., 2021))}
+\end{figure}
+
+\textbf{3. Tái tạo ảnh chất lượng cao (High-Quality Image Reconstruction)}
+
+\begin{itemize}
+\item \textbf{Cơ chế hoạt động:} Module này tổng hợp cả đặc trưng nông (mang thông tin tần số thấp) và đặc trưng sâu (đã khôi phục thông tin tần số cao). Đối với tác vụ siêu phân giải, SwinIR sử dụng lớp tích chập điểm ảnh phụ để upsampling các đặc trưng.
+\item \textbf{Ý nghĩa:} Mô hình áp dụng kỹ thuật học phần dư (residual learning), tức là mạng chỉ dự đoán sự khác biệt giữa ảnh độ phân giải thấp và ảnh độ phân giải cao thay vì dự đoán toàn bộ ảnh HQ. Kết hợp với kết nối tắt từ đầu vào, mô hình giảm tải được áp lực tính toán và phục hồi các chi tiết sắc nét hơn.
+\end{itemize}
+
+\paragraph{Huấn luyện và Thực nghiệm}
+
+\begin{enumerate}
+\item \textbf{Hàm mất mát (Loss Function):}
+\end{enumerate}
+
+SwinIR linh hoạt điều chỉnh hàm mất mát tùy thuộc vào mục tiêu:
+
+\begin{itemize}
+\item Với bài toán SR cổ điển và SR tinh gọn, mô hình tối ưu hóa trực tiếp dựa trên hàm mất mát điểm ảnh L1 để đánh giá sai số giữa ảnh khôi phục và ảnh gốc.
+\item Với bài toán SR thực tế nơi nhiễu và độ mờ phức tạp hơn, mô hình sử dụng kết hợp hàm mất mát L1, hàm mất mát đối kháng (GAN loss) và hàm mất mát cảm nhận (Perceptual loss) nhằm tối ưu hóa chất lượng thị giác sao cho chân thực nhất.
+\end{itemize}
+\begin{enumerate}
+\item \textbf{Kết quả đánh giá và hiệu năng:}
+\end{enumerate}
+\begin{itemize}
+\item \textbf{So sánh với các phương pháp CNN:} Trên các tập dữ liệu tiêu chuẩn (Set5, Set14, BSD100, Urban100, Manga109), SwinIR vượt trội hơn hẳn các mô hình CNN hàng đầu có cơ chế chú ý như RCAN, HAN, hay NLSA. Mức tăng PSNR cực đại có thể lên tới 0.26 dB trên tập Manga109 (tỷ lệ x4).
+\item \textbf{Độ hiệu quả về tham số:} Một điểm đột phá của SwinIR là hiệu quả tối ưu tham số. So với mô hình tiền nhiệm dựa trên Transformer là IPT (cần tới 115.5 triệu tham số và phải huấn luyện trước trên 1.3 triệu ảnh ImageNet), SwinIR chỉ có 11.8 triệu tham số (giảm gần 90\%) và chỉ cần huấn luyện trên tập dữ liệu nhỏ (như DIV2K + Flickr2K) nhưng vẫn đem lại chỉ số PSNR cao hơn.
+\end{itemize}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image19.png}
+\caption{Biểu đồ so sánh hiệu năng và số lượng tham số của các mô hình Siêu phân giải ảnh}
+\end{figure}
+
+\begin{itemize}
+\item \textbf{Chất lượng thị giác và hội tụ:} Trái với quan điểm cũ cho rằng các mạng Transformer thường hội tụ rất chậm, thực nghiệm cho thấy SwinIR hội tụ nhanh hơn và đạt đỉnh tốt hơn so với RCAN. Về mặt thị giác, SwinIR khôi phục được các kết cấu phức tạp (như vân gỗ, các sọc song song, chữ viết) một cách tự nhiên và loại bỏ triệt để hiện tượng viền mờ hay biến dạng cấu trúc mà các mô hình CNN thường gặp phải.
+\end{itemize}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image20.png}
+\caption{Hình?: So sánh kết quả trực quan của mô hình SwinIR và các mô hình SR khác.}
+\end{figure}
+
+\subsubsection{HAT (Hybrid Attention Transformer, Chen et al. 2023)}
+
+\paragraph{Động lực nghiên cứu và ý nghĩa lý thuyết}
+
+Mặc dù các kiến trúc dựa trên Transformer như SwinIR đã đạt được những thành tựu vượt trội so với mạng tích chập CNN truyền thống, tiềm năng thực sự của cơ chế tự chú ý trong bài toán siêu phân giải ảnh vẫn chưa được khai thác triệt để. Thông qua LAM (Local Attribution Map), các tác giả của mô hình HAT đã chỉ ra một hạn chế của SwinIR: mạng lưới này chỉ kích hoạt và sử dụng thông tin từ một phạm vi không gian rất giới hạn xung quanh vùng ảnh cục bộ cần tái tạo. Điều này đồng nghĩa với việc mặc dù Transformer sở hữu khả năng mô hình hóa quan hệ dài hạn trên lý thuyết, nhưng trên thực tế vận hành, SwinIR vẫn bị bó hẹp tương tự như một bộ lọc tích chập cục bộ mở rộng và bỏ sót nhiều thông tin hữu ích từ các vùng pixel ở khoảng cách không gian xa hơn.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image21.png}
+\caption{Phân tích phạm vi kích hoạt pixel đầu vào bằng phương pháp LAM (Local Attribution Map).}
+\end{figure}
+
+Để giải quyết triệt để vấn đề này, kiến trúc Hybrid Attention Transformer (HAT) được đề xuất với mục tiêu cốt lõi là mở rộng tối đa vùng kích hoạt pixel đầu vào trong quá trình khôi phục cấu trúc ảnh độ phân giải cao. Bằng cách tích hợp một cách đồng điệu giữa cơ chế chú ý theo kênh toàn cục của CNN và chú ý không gian dựa trên cửa sổ của Transformer, HAT tạo điều kiện cho mô hình thu nạp bối cảnh rộng lớn hơn, mang lại chất lượng tái tạo chi tiết sắc nét và khôi phục thông tin tần số cao vượt trội.
+
+\paragraph{Cấu tạo mạng và các thành phần cốt lõi}
+
+Kiến trúc tổng thể của HAT bao gồm ba giai đoạn chính: Trích xuất đặc trưng nông, Trích xuất đặc trưng sâu, và Tái tạo hình ảnh. Trong đó, điểm mới nằm ở module trích xuất đặc trưng sâu với thiết kế gồm chuỗi các nhóm chú ý hỗn hợp phần dư (Residual Hybrid Attention Groups - RHAG).
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image22.png}
+\caption{Sơ đồ kiến trúc tổng thể của mạng Hybrid Attention Transformer (HAT).}
+\end{figure}
+
+Mỗi cấu trúc RHAG bao gồm M khối chú ý hỗn hợp (Hybrid Attention Blocks - HAB) nối tiếp nhau, kết thúc bằng một khối chú ý chéo chồng lấn (Overlapping Cross-Attention Block - OCAB) và một lớp tích chập 33 nhằm thiết lập kết nối thặng dư tổng thể cho cả nhóm. Chi tiết các thành phần cốt lõi bên trong bao gồm:
+
+\begin{enumerate}
+\item \textbf{Khối chú ý hỗn hợp:}
+\end{enumerate}
+\begin{itemize}
+\item Thay vì chỉ sử dụng đơn lẻ cơ chế chú ý không gian cục bộ rời rạc, HAB thiết kế một cấu trúc song song độc đáo kết hợp giữa Tự chú ý đa đầu theo cửa sổ (Window-based Multi-head Self-Attention - W-MSA) và Khối chú ý theo kênh (Channel Attention Block - CAB).
+\item Nhánh W-MSA chịu trách nhiệm mô hình hóa các mối quan hệ không gian dài hạn trong phạm vi từng cửa sổ cục bộ không chồng lấn.
+\item Nhánh CAB tận dụng các phép toán tích chập và phép gộp trung bình toàn cục (global average pooling) để khai thác thông tin thống kê và mối tương quan trọng số giữa các kênh đặc trưng.
+\item Việc kết hợp song song này giúp bổ trợ "định kiến quy nạp" (inductive bias) mạnh mẽ của CNN vào Transformer, cho phép mạng vừa học được cấu trúc thống kê kênh toàn cục, vừa tối ưu hóa khả năng khớp dữ liệu không gian cục bộ.
+\end{itemize}
+\begin{enumerate}
+\item \textbf{Khối chú ý chéo chồng lấn (Overlapping Cross-Attention Block - OCAB):}
+\end{enumerate}
+\begin{itemize}
+\item Trong các mô hình tiền nhiệm như SwinIR, việc trao đổi thông tin xuyên vùng hoàn toàn phụ thuộc vào cơ chế dịch chuyển cửa sổ, điều này vô tình tạo ra ranh giới tại các cạnh cửa sổ và hạn chế luồng tương tác không gian.
+\item Khối OCAB được bổ sung vào cuối mỗi nhóm RHAG để thiết lập một kênh tương tác trực tiếp và liên tục giữa các vùng cửa sổ lân cận.
+\item Bằng cách sử dụng các cửa sổ có kích thước mở rộng và chồng lấn lên nhau để thực hiện truy vấn chú ý chéo, OCAB giúp làm mượt biên giới giữa các khối đặc trưng, tăng cường tính nhất quán không gian và loại bỏ triệt để hiện tượng lỗi khối (blocking artifacts).
+\end{itemize}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image23.png}
+\caption{Hình?: Thiết kế chi tiết cấu trúc các khối HAB, CAB và OCAB bên trong cấu trúc RHAG.}
+\end{figure}
+
+\paragraph{Chiến lược huấn luyện và Kết quả thực nghiệm}
+
+\begin{enumerate}
+\item \textbf{Chiến lược tiền huấn luyện cùng tác vụ:}
+\end{enumerate}
+\begin{itemize}
+\item Do kiến trúc Transformer sở hữu dung lượng mô hình khổng lồ và định kiến quy nạp thấp, việc huấn luyện trực tiếp từ đầu trên các tập dữ liệu siêu phân giải nhỏ rất dễ dẫn đến hiện tượng quá khớp (overfitting) hoặc bão hòa hiệu năng.
+\item HAT đề xuất chiến lược tiền huấn luyện quy mô lớn dựa trên tập dữ liệu ImageNet với chính tác vụ siêu phân giải ảnh (suy giảm và phục hồi trực tiếp trên ảnh ImageNet).
+\item Sau khi mô hình đã tích lũy được các biểu diễn đặc trưng phong phú từ hàng triệu bức ảnh mẫu, mạng lưới sẽ được fine-tune trên các tập dữ liệu phục hồi tiêu chuẩn như DF2K. Chiến lược này đã chứng minh tính hiệu quả tối cao trong việc kích hoạt hoàn toàn sức mạnh biểu diễn tiềm ẩn của mạng Transformer.
+\end{itemize}
+\begin{enumerate}
+\item \textbf{Hiệu suất định lượng và định tính vượt trội:}
+\end{enumerate}
+\begin{itemize}
+\item Về mặt định lượng, HAT liên tục thiết lập các chuẩn mực mới về chỉ số PSNR và SSIM trên 5 tập dữ liệu benchmark kinh điển bao gồm Set5, Set14, BSD100, Urban100 và Manga109.
+\item Mô hình vượt qua SwinIR một cách thuyết phục ở tất cả các cấu hình hệ số phóng đại từ x2, x3, cho đếnx4.
+\item Về mặt trực quan, nhờ khả năng kích hoạt nhiều pixel đầu vào trên diện rộng, HAT thể hiện năng lực khôi phục xuất sắc đối với các cấu trúc hình học siêu phức tạp như kết cấu hoa văn trên các tòa nhà cao tầng (Urban100) hay các nét vẽ chi tiết mảnh trong truyện tranh (Manga109) mà các mô hình CNN hoặc thậm chí SwinIR thường làm mờ hoặc tái tạo sai cấu trúc.
+\end{itemize}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image24.png}
+\caption{So sánh trực quan kết quả siêu phân giải ảnh giữa HAT và các phương pháp phục hồi khác.}
+\end{figure}
+
+\subsection{Các mô hình dựa trên kiến trúc Diffusion}
+
+\subsubsection{SR3 - Image Super-Resolution via Iterative Refinement}
+
+Một hướng nghiên cứu nền tảng trong diffusion-based image super-resolution là SR3, được đề xuất trong bài \textit{Image Super-Resolution via Iterative Refinement}. Mô hình này mở rộng denoising diffusion probabilistic models sang bài toán conditional image generation, trong đó ảnh low-resolution được dùng làm điều kiện để tái tạo ảnh high-resolution. Về ý nghĩa nghiên cứu, SR3 đặt nền móng cho việc áp dụng diffusion models vào image restoration và super-resolution. Nó cho thấy diffusion không chỉ phù hợp với text-to-image generation hay unconditional image generation, mà còn có thể được dùng hiệu quả trong các bài toán image-to-image translation. Tuy nhiên, hạn chế lớn của SR3 là quá trình sampling nhiều bước khiến chi phí suy luận cao, thời gian tạo ảnh chậm và khó triển khai trong các ứng dụng real-time.
+
+\paragraph{Cấu tạo mạng}
+
+SR3 là một \textbf{conditional denoising diffusion model}: mô hình bắt đầu từ một ảnh nhiễu Gaussian ở độ phân giải cao, sau đó khử nhiễu nhiều bước để tạo ảnh HR, trong khi luôn được điều kiện bởi ảnh LR đầu vào. Paper mô tả SR3 là quá trình \textbf{stochastic iterative denoising} dùng \textbf{U-Net} được huấn luyện để khử nhiễu ở nhiều mức noise khác nhau.
+
+\subsubsection{Kiến trúc SR3: Conditional Denoising Diffusion Model cho Image Super-Resolution}
+
+SR3 được xây dựng dựa trên mô hình \textbf{conditional denoising diffusion probabilistic model} nhằm giải quyết bài toán image super-resolution. Trong bài toán này, dữ liệu huấn luyện bao gồm các cặp ảnh đầu vào và đầu ra, ký hiệu là D = \{(xi, yi)\}Ni=1 , trong đó xi là ảnh có độ phân giải thấp và (yi) là ảnh mục tiêu có độ phân giải cao. Mục tiêu của mô hình là học một xấp xỉ tham số cho phân phối có điều kiện (p(y|x)), tức là sinh ra ảnh độ phân giải cao (y) dựa trên ảnh đầu vào độ phân giải thấp (x).
+
+Bài toán super-resolution có bản chất \textbf{one-to-many}, vì một ảnh độ phân giải thấp có thể tương ứng với nhiều ảnh độ phân giải cao hợp lý khác nhau. Do đó, thay vì học một ánh xạ xác định trực tiếp từ ảnh LR sang ảnh HR, SR3 tiếp cận bài toán dưới dạng một quá trình sinh ảnh xác suất. Mô hình bắt đầu từ một ảnh nhiễu Gaussian (yT  N(0, I)), sau đó từng bước khử nhiễu để thu được ảnh độ phân giải cao (y0). Quá trình khử nhiễu này được điều kiện hóa bởi ảnh nguồn (x).
+
+Cấu trúc tổng quát của SR3 gồm hai quá trình chính: \textbf{forward diffusion process} và \textbf{reverse denoising process}. Trong forward diffusion process, ảnh HR thật (y0) được thêm nhiễu Gaussian dần qua (T) bước theo một chuỗi Markov cố định. Ở mỗi bước, ảnh (yt-1) được biến đổi thành ảnh nhiễu hơn (yt) theo phân phối:
+
+q(yt|yt-1) =N(yt|tyt-1,(1-t)I)
+
+Trong đó, (t) là siêu tham số điều khiển lượng nhiễu được thêm vào tại bước (t). Khi số bước tăng dần, ảnh ban đầu mất dần thông tin cấu trúc và tiến gần đến phân phối Gaussian chuẩn.
+
+Ngược lại, trong reverse process, SR3 học cách khử nhiễu từng bước để phục hồi ảnh HR từ nhiễu Gaussian. Quá trình này được mô hình hóa bởi các phân phối có điều kiện:
+
+p(yt-1|yt,x)
+
+Trong đó, (yt) là ảnh đang bị nhiễu ở bước hiện tại, còn (x) là ảnh LR đầu vào đóng vai trò điều kiện. Mục tiêu của mô hình là học chuỗi khử nhiễu sao cho sau (T) bước, ảnh cuối cùng (y0) được sinh ra theo phân phối gần với (p(y|x)).
+
+Thành phần trung tâm của SR3 là một mạng \textbf{neural denoising model} (f). Mạng này nhận ba đầu vào chính: ảnh nguồn (x), ảnh mục tiêu bị nhiễu ((y)), và mức nhiễu (). Ảnh nhiễu ((y)) được tạo từ ảnh HR thật (y0) theo công thức:
+
+y= y0+1-,\\quad  \\cal\{N\}(0, I)
+
+Thay vì trực tiếp dự đoán ảnh HR sạch (y0), SR3 huấn luyện mạng (f) để dự đoán thành phần nhiễu () đã được thêm vào ảnh. Hàm mục tiêu của mô hình là tối thiểu hóa sai khác giữa nhiễu thật và nhiễu do mô hình dự đoán:
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image25.png}
+\end{figure}
+Cách huấn luyện này giúp mô hình học được khả năng khử nhiễu ở nhiều mức độ khác nhau. Biến () đóng vai trò biểu diễn mức nhiễu hiện tại, cho phép mạng biết ảnh đầu vào đang ở giai đoạn nào trong chuỗi diffusion.
+
+Về mặt kiến trúc mạng, SR3 sử dụng backbone dạng \textbf{U-Net}, tương tự kiến trúc trong DDPM, nhưng có một số điều chỉnh để phù hợp với bài toán super-resolution. Cụ thể, các residual blocks gốc trong DDPM được thay bằng residual blocks từ BigGAN. Ngoài ra, các skip connections được điều chỉnh hệ số tỉ lệ, số lượng residual blocks được tăng lên, và channel multipliers tại các mức resolution khác nhau cũng được mở rộng. Những thay đổi này giúp mạng tăng khả năng biểu diễn đặc trưng ảnh ở nhiều cấp độ không gian.
+
+Cơ chế điều kiện hóa ảnh LR trong SR3 được thực hiện tương đối trực tiếp. Ảnh LR (x) trước tiên được phóng đại lên cùng kích thước với ảnh HR mục tiêu bằng bicubic interpolation. Sau đó, ảnh đã được phóng đại này được nối với ảnh nhiễu (yt) theo chiều channel và đưa vào U-Net. Nếu ảnh đầu vào là ảnh RGB, ảnh nhiễu (yt) có 3 kênh và ảnh LR sau khi upscale cũng có 3 kênh; sau khi concatenate, tensor đầu vào của U-Net có 6 kênh. Cách làm này cho phép mô hình đồng thời quan sát cấu trúc tổng quát từ ảnh LR và trạng thái nhiễu hiện tại của ảnh HR đang được tái tạo.
+
+Trong quá trình inference, mô hình bắt đầu từ một ảnh nhiễu Gaussian (![][image26]). Tại mỗi bước (t), mạng (f ) dự đoán nhiễu trong (yt) dựa trên ảnh LR (x) và mức nhiễu (t). Sau đó, ảnh (yt-1) được tính toán từ (yt) bằng công thức khử nhiễu tương ứng. Quá trình này được lặp lại cho đến khi thu được ảnh (y0), tức ảnh super-resolution cuối cùng.
+
+Một đặc điểm quan trọng của SR3 là mô hình điều kiện hóa trực tiếp trên mức nhiễu (), thay vì chỉ sử dụng chỉ số timestep (t). Điều này giúp mô hình linh hoạt hơn trong việc lựa chọn noise schedule và số bước diffusion khi inference. Trong huấn luyện, SR3 sử dụng (T = 2000) bước diffusion. Tuy nhiên, để giảm chi phí suy luận, mô hình có thể sử dụng số bước inference nhỏ hơn, chẳng hạn tối đa 100 bước, thông qua việc lựa chọn noise schedule phù hợp.
+
+Nhìn chung, kiến trúc SR3 có thể được hiểu là một hệ thống super-resolution dựa trên quá trình khử nhiễu có điều kiện. Ảnh LR cung cấp thông tin cấu trúc và nội dung, trong khi U-Net học cách phục hồi dần ảnh HR từ nhiễu Gaussian thông qua nhiều bước refinement. Cách tiếp cận này giúp SR3 tạo ra ảnh có chất lượng thị giác cao hơn so với nhiều mô hình regression-based truyền thống. Tuy nhiên, hạn chế chính của kiến trúc này là chi phí suy luận lớn do quá trình tạo ảnh cần nhiều bước khử nhiễu liên tiếp.
+
+\subsubsection{StableSR}
+
+StableSR được đề xuất nhằm giải quyết bài toán real-world image super-resolution, trong đó ảnh đầu vào thường bị suy giảm bởi nhiều yếu tố phức tạp như nhiễu, mờ, nén ảnh, mất chi tiết hoặc quá trình downsampling không xác định. Khác với các thiết lập super-resolution cổ điển, real-world super-resolution không giả định rằng ảnh độ phân giải thấp được tạo ra từ một phép bicubic downsampling cố định. Vì vậy, mô hình cần có khả năng phục hồi ảnh trong điều kiện suy giảm không rõ ràng và đa dạng.
+
+Ý tưởng trung tâm của StableSR là khai thác prior đã được học trong pretrained text-to-image diffusion model, cụ thể là Stable Diffusion. Thay vì huấn luyện một diffusion model từ đầu cho bài toán super-resolution, StableSR giữ lại phần lớn mô hình Stable Diffusion đã được pretrained và chỉ huấn luyện thêm một số thành phần điều kiện hóa cho nhiệm vụ phục hồi ảnh. Cách thiết kế này giúp mô hình tận dụng được năng lực sinh ảnh và biểu diễn chi tiết tự nhiên của Stable Diffusion, đồng thời giảm chi phí huấn luyện so với việc xây dựng một diffusion model mới hoàn toàn.
+
+\paragraph{Cấu tạo mạng}
+
+Về tổng thể, kiến trúc StableSR gồm bốn thành phần chính: \textbf{pretrained Stable Diffusion, time-aware encoder, spatial feature transform layers và controllable feature wrapping module.} Ngoài ra, mô hình còn sử dụng progressive aggregation sampling để xử lý ảnh có kích thước lớn hoặc kích thước không cố định.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/image27.png}
+\end{figure}
+Thành phần nền tảng của StableSR là pretrained Stable Diffusion. Stable Diffusion hoạt động trong latent space thay vì trực tiếp xử lý ảnh ở pixel space. Ảnh đầu vào trước hết được mã hóa thông qua autoencoder để chuyển thành latent representation. Sau đó, denoising U-Net trong Stable Diffusion thực hiện quá trình khử nhiễu trong latent space. Cuối cùng, latent output được giải mã trở lại không gian ảnh bằng decoder của autoencoder. Việc làm việc trong latent space giúp giảm chi phí tính toán so với diffusion models hoạt động trực tiếp trên ảnh pixel.
+
+Tuy nhiên, Stable Diffusion ban đầu được thiết kế cho tác vụ text-to-image generation, không phải super-resolution. Vì vậy, nếu áp dụng trực tiếp cho ảnh LR, mô hình có thể tạo ra chi tiết thị giác đẹp nhưng không đảm bảo độ trung thực với ảnh đầu vào. Để giải quyết vấn đề này, StableSR bổ sung một time-aware encoder nhằm trích xuất đặc trưng từ ảnh LR và đưa các đặc trưng này vào quá trình khử nhiễu của Stable Diffusion.
+
+Time-aware encoder là thành phần điều kiện hóa quan trọng nhất trong StableSR. Encoder này nhận ảnh LR hoặc đặc trưng latent của ảnh LR làm đầu vào và trích xuất các đặc trưng đa tỉ lệ. Các đặc trưng này không được đưa vào mô hình bằng cách concatenate trực tiếp như SR3, mà được dùng để điều chỉnh các feature maps bên trong denoising U-Net của Stable Diffusion. Điểm quan trọng là encoder này có thêm time embedding, giúp đặc trưng điều kiện thay đổi theo từng timestep trong quá trình diffusion.
+
+Việc sử dụng time-aware guidance là cần thiết vì yêu cầu điều kiện hóa trong quá trình khử nhiễu không giống nhau ở mọi timestep. Ở các bước đầu, khi ảnh còn nhiễu nhiều, mô hình cần guidance mạnh hơn từ ảnh LR để duy trì cấu trúc nội dung. Ở các bước sau, khi ảnh đã rõ hơn, guidance cần được điều chỉnh để tránh đưa ngược các degradation từ ảnh LR vào ảnh kết quả. Nhờ time embedding, time-aware encoder có thể tạo ra điều kiện phù hợp với từng giai đoạn của reverse diffusion process.
+
+Để đưa đặc trưng LR vào Stable Diffusion mà không phá vỡ generative prior của mô hình gốc, StableSR sử dụng các spatial feature transform layers. Các SFT layers được chèn vào các residual blocks của denoising U-Net trong Stable Diffusion. Chức năng của SFT là điều chỉnh feature maps của U-Net thông qua các tham số affine được sinh ra từ đặc trưng LR. Nói cách khác, ảnh LR không trực tiếp thay thế quá trình sinh ảnh của Stable Diffusion, mà đóng vai trò điều kiện để điều chỉnh hoạt động của U-Net ở nhiều tầng đặc trưng khác nhau.
+
+Một điểm quan trọng trong thiết kế StableSR là phần pretrained Stable Diffusion được giữ cố định trong quá trình fine-tuning. Mô hình chủ yếu huấn luyện time-aware encoder và các SFT layers. Chiến lược này giúp bảo toàn generative prior đã có trong Stable Diffusion, đồng thời giảm số lượng tham số cần huấn luyện. Điều này khác với các mô hình diffusion SR như SR3, nơi toàn bộ diffusion model được huấn luyện trực tiếp cho nhiệm vụ super-resolution.
+
+Bên cạnh time-aware encoder, StableSR còn đề xuất controllable feature wrapping module, viết tắt là CFW. Module này được dùng để xử lý trade-off giữa realism và fidelity. Trong real-world super-resolution, realism thể hiện mức độ tự nhiên, sắc nét và hợp lý của chi tiết ảnh; fidelity thể hiện mức độ trung thành với ảnh đầu vào. Nếu mô hình dựa quá nhiều vào generative prior, ảnh kết quả có thể đẹp nhưng sinh ra chi tiết không đúng với nội dung gốc. Nếu mô hình bám quá chặt vào ảnh LR, kết quả có thể giữ cấu trúc tốt hơn nhưng kém tự nhiên hoặc vẫn còn degradation.
+
+CFW được thiết kế để điều chỉnh mức độ can thiệp của đặc trưng LR vào quá trình decoding. Vì Stable Diffusion sử dụng autoencoder, StableSR tận dụng đặc trưng từ encoder và decoder của autoencoder để tinh chỉnh ảnh đầu ra. Module này có một hệ số điều khiển, cho phép thay đổi mức cân bằng giữa chất lượng thị giác và độ trung thực. Khi hệ số điều khiển nhỏ, mô hình ưu tiên khả năng sinh chi tiết tự nhiên của Stable Diffusion. Khi hệ số điều khiển lớn, mô hình tăng cường sự phụ thuộc vào cấu trúc của ảnh LR để cải thiện fidelity.
+
+3.3.2.2. Chiến lược huấn luyện
+
+Quy trình huấn luyện của StableSR gồm hai giai đoạn chính. Ở giai đoạn đầu, mô hình fine-tune time-aware encoder và các SFT layers trong khi giữ phần lớn Stable Diffusion cố định. Mục tiêu của giai đoạn này là học cách đưa thông tin từ ảnh LR vào diffusion prior để tạo ảnh HR hợp lý. Ở giai đoạn thứ hai, CFW module được huấn luyện riêng để cải thiện fidelity và kiểm soát trade-off giữa độ tự nhiên và độ trung thực của ảnh đầu ra.
+
+Trong quá trình inference, ảnh LR được đưa vào mô hình và chuyển thành đặc trưng điều kiện thông qua time-aware encoder. Stable Diffusion thực hiện quá trình denoising trong latent space dưới sự điều kiện hóa của các SFT layers. Nếu sử dụng CFW, đặc trưng trong quá trình decoding tiếp tục được điều chỉnh để tăng độ trung thực với ảnh đầu vào. Cuối cùng, latent output được giải mã thành ảnh super-resolution ở pixel space. Với ảnh kích thước lớn, progressive aggregation sampling được áp dụng để đảm bảo tính nhất quán giữa các vùng ảnh.
+
+Nhìn chung, StableSR đại diện cho hướng tiếp cận sử dụng pretrained diffusion prior cho real-world image super-resolution. Khác với SR3, StableSR không huấn luyện diffusion model từ đầu và cũng không chỉ dựa vào ảnh LR như một điều kiện nối kênh đơn giản. Thay vào đó, mô hình tận dụng pretrained Stable Diffusion, bổ sung time-aware encoder để điều kiện hóa theo timestep, dùng SFT layers để điều chỉnh feature maps, và dùng CFW để kiểm soát trade-off giữa realism và fidelity. Cách tiếp cận này giúp StableSR tạo ra ảnh có chất lượng thị giác cao trong các tình huống suy giảm thực tế, nhưng vẫn tồn tại hạn chế như chi phí inference cao, khả năng sinh chi tiết không hoàn toàn đúng với ảnh gốc và sự phụ thuộc vào pretrained diffusion model.
+
+\subsection{Các mô hình dựa trên kiến trúc GAN}
+
+\subsubsection{SRGAN (Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network, Ledig et al. 2017)}
+
+\paragraph{Động lực nghiên cứu}
+
+Như đã phân tích ở mục 2.5, các mô hình supervised SR thời kỳ đầu như SRCNN và FSRCNN chủ yếu tối ưu hóa bằng hàm mất mát MSE hoặc L1, giúp đạt chỉ số PSNR cao nhưng dẫn đến ảnh đầu ra bị oversmoothed, mất đi các chi tiết tần số cao tự nhiên. SRGAN (Ledig et al., 2017) là mô hình tiên phong áp dụng cơ chế GAN vào bài toán super-resolution, thay đổi mục tiêu tối ưu từ ``khớp điểm ảnh'' sang ``tạo ảnh chân thực''. Đây là mô hình đầu tiên có thể tái tạo ảnh 4$\times$ với chất lượng thị giác cạnh tranh ở mức nhận thức con người.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/gan-concept.png}
+\caption{Minh họa cơ chế GAN: mạng sinh (Generator) tạo ảnh giả, mạng phân biệt (Discriminator) đánh giá thật hay giả.}
+\end{figure}
+
+\paragraph{Cấu tạo mạng}
+
+Kiến trúc SRGAN gồm hai mạng hoạt động song song và đối kháng:
+
+\textbf{1. Mạng sinh (Generator — $G$)}
+
+Nhiệm vụ của $G$ là nhận ảnh LR ($I^{\text{LR}}$) và ánh xạ nó thành ảnh HR. Kiến trúc của $G$ gồm ba phân đoạn chính:
+
+\begin{itemize}
+\item \textbf{Khối trích xuất đặc trưng sơ bộ:} Ảnh đầu vào đi qua một tầng tích chập với bộ lọc kích thước $9 \times 9$, tạo ra 64 kênh đặc trưng, sử dụng hàm kích hoạt PReLU (Parametric ReLU).
+\item \textbf{Các khối phần dư (Residual Blocks):} Mạng sử dụng liên tiếp $B = 16$ khối phần dư để trích xuất đặc trưng sâu mà không bị tiêu biến đạo hàm. Mỗi khối phần dư có cấu trúc $x_{l} = \mathcal{F}(x_{l-1}) + x_{l-1}$, gồm hai tầng tích chập $3 \times 3$ (64 kênh), Batch Normalization và PReLU. Kết nối tắt (skip connection) giúp bảo toàn thông tin gốc và ổn định quá trình học.
+\item \textbf{Khối tăng độ phân giải (Upsampling Blocks):} SRGAN sử dụng kỹ thuật PixelShuffle (Sub-Pixel Convolution) để phóng to ảnh. Để tăng kích thước lên $r$ lần, tầng tích chập tạo ra $r^2 \times C$ kênh đặc trưng, sau đó PixelShuffle sắp xếp lại các kênh này vào vị trí không gian tương ứng, tạo ảnh lớn hơn với chiều cao và rộng gấp $r$ lần. Cách tiếp cận này hiệu quả hơn nội suy hình học hay tích chập chuyển vị (Transposed Convolution).
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/srgan-generator.png}
+\caption{Sơ đồ kiến trúc mạng sinh (Generator) của SRGAN với các khối phần dư và PixelShuffle upsampling.}
+\end{figure}
+
+\textbf{2. Mạng phân biệt (Discriminator — $D$)}
+
+Mạng $D$ đóng vai trò phân loại nhị phân, dự đoán xác suất ảnh đầu vào là thật hay do $G$ tạo ra. Kiến trúc của $D$ tuân theo nguyên lý thiết kế VGG:
+
+\begin{itemize}
+\item Gồm 8 tầng tích chập liên tiếp với bộ lọc $3 \times 3$, số kênh tăng dần: $64 \rightarrow 128 \rightarrow 256 \rightarrow 512$.
+\item Sử dụng tích chập có bước nhảy (stride $s = 2$) xen kẽ thay vì Max-Pooling để hạ kích thước, nhằm bảo toàn thông tin không gian.
+\item Toàn bộ sử dụng hàm kích hoạt LeakyReLU ($\alpha = 0.2$).
+\item Cuối mạng là hai tầng kết nối đầy đủ (1024 nút) và hàm Sigmoid để đưa ra xác suất trong khoảng $[0, 1]$.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{img/report/srgan-discriminator.png}
+\caption{Sơ đồ kiến trúc mạng phân biệt (Discriminator) của SRGAN với 8 khối tích chập và các tầng kết nối đầy đủ.}
+\end{figure}
+
+\paragraph{Hàm mất mát Perceptual Loss}
+
+Để tối ưu hóa cả cấu trúc lẫn độ chân thực, SRGAN đề xuất hàm Perceptual Loss tổng hợp hai thành phần:
+
+$$
+\mathcal{L}_{\text{SR}} = \mathcal{L}_{\text{content}} + 10^{-3} \cdot \mathcal{L}_{\text{adversarial}}
+$$
+
+\textbf{VGG Loss ($\mathcal{L}_{\text{content}}$):} Thay vì tính sai số trên không gian điểm ảnh, SRGAN tính sai số trên không gian đặc trưng của mạng VGG-19 đã huấn luyện trước. Gọi $\phi_{i,j}$ là bản đồ đặc trưng thu được trước tầng Max-Pooling thứ $i$ và sau tầng tích chập thứ $j$:
+
+$$
+\mathcal{L}_{\text{VGG}/i,j} = \frac{1}{W_{i,j} H_{i,j}} \sum_{x=1}^{W_{i,j}} \sum_{y=1}^{H_{i,j}} \left( \phi_{i,j}(I^{\text{HR}})_{x,y} - \phi_{i,j}(G(I^{\text{LR}}))_{x,y} \right)^2
+$$
+
+Các tầng sâu của VGG trích xuất đặc trưng cao cấp như cấu trúc, hình khối và bố cục. Việc tối ưu trên VGG Loss ép ảnh sinh ra có cùng cấu trúc ngữ nghĩa với ảnh thật, cho phép sai lệch nhỏ về vị trí điểm ảnh để tạo chi tiết sắc nét tự nhiên.
+
+\textbf{Adversarial Loss ($\mathcal{L}_{\text{adversarial}}$):} Thành phần này định lượng khả năng $G$ đánh lừa $D$:
+
+$$
+\mathcal{L}_{\text{adversarial}} = \sum_{n=1}^{N} -\log D(G(I^{\text{LR}}))
+$$
+
+Khi $G$ sinh ra ảnh mờ hoặc không tự nhiên, $D$ sẽ trả về giá trị gần 0, khiến $-\log D$ rất lớn — đóng vai trò hình phạt buộc $G$ cập nhật trọng số để tạo chi tiết thực tế hơn.
+
+\paragraph{Quy trình huấn luyện}
+
+Để đảm bảo hội tụ và ổn định, huấn luyện SRGAN chia thành hai giai đoạn:
+
+\begin{enumerate}
+\item \textbf{Giai đoạn tiền khởi tạo (Pre-training):} Mạng $G$ được huấn luyện độc lập với hàm MSE thuần túy. Mục tiêu là tạo điểm khởi đầu ổn định, giúp $G$ có khả năng khôi phục cấu trúc hình học cơ bản. Nếu bỏ qua bước này, $G$ sẽ sinh ra ảnh nhiễu, $D$ dễ dàng phân biệt tuyệt đối, dẫn đến gradient bị triệt tiêu và $G$ không thể học.
+\item \textbf{Giai đoạn huấn luyện đối kháng (Adversarial Training):} Hai mạng được cập nhật xen kẽ trong mỗi vòng lặp. Cố định $G$, cập nhật $D$ bằng Binary Cross-Entropy Loss trên ảnh thật và ảnh giả. Sau đó cố định $D$, cập nhật $G$ bằng Perceptual Loss (kết hợp VGG Loss và Adversarial Loss).
+\end{enumerate}
+
+\paragraph{Kết quả và hạn chế}
+
+SRGAN đánh dấu bước ngoặt trong lĩnh vực super-resolution khi tạo ra ảnh 4$\times$ có chất lượng thị giác vượt trội, khôi phục được các chi tiết kết cấu tự nhiên mà các mô hình MSE-based không thể tái tạo. Tuy nhiên, SRGAN cũng tồn tại một số hạn chế: quá trình huấn luyện GAN kém ổn định, có thể xảy ra hiện tượng mode collapse; ảnh đầu ra đôi khi chứa chi tiết ``hallucination'' — nhìn hợp lý nhưng không chính xác so với ảnh gốc; và chỉ số PSNR/SSIM định lượng có thể thấp hơn các mô hình MSE-based do sự đánh đổi giữa pixel accuracy và perceptual quality.
+
+\section{Thực nghiệm}
+
+Mục tiêu của phần thực nghiệm là tái hiện lại quá trình huấn luyện và đánh giá đối với bốn mô hình đã được trình bày ở trên. Mã nguồn được thực thi trên môi trường Kaggle với thông số cụ thể như trong Bảng~\ref{tab:kaggle-environment}.
+
+\begin{table}[H]
+\centering
+\caption{Thông số môi trường thực nghiệm trên Kaggle.}
+\label{tab:kaggle-environment}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Thông số} & \textbf{Chi tiết} \\ \hline
+OS & Linux 6.12.90+ (x86\_64) \\ \hline
+Hostname & bfd88f0a7ccf \\ \hline
+Python & 3.12.13 (/usr/bin/python3) \\ \hline
+CPU & 4 cores (x86\_64) \\ \hline
+RAM & 31.3 GB total \\ \hline
+GPU 0 & Tesla T4 (15360 MB total) \\ \hline
+GPU 1 & Tesla T4 (15360 MB total) \\ \hline
+\end{tabular}
+\end{table}
+
+Mã nguồn và hướng dẫn sử dụng được lưu giữ tại: \url{https://github.com/tannguyenbmt47/Image_Super_Resolution_evaluation}.
+
+\subsection{Tập dữ liệu}
+\label{sec:datasets}
+
+DIV2K được chọn cho tác vụ huấn luyện và đánh giá bốn mô hình trong thực nghiệm. Tập dữ liệu bao gồm 1000 ảnh chất lượng 2K với nhiều chủ đề khác nhau, được chia thành 800 ảnh cho tập huấn luyện, 100 ảnh cho tập kiểm định và 100 ảnh cho tập kiểm thử. Bên cạnh ảnh chất lượng cao, bộ dữ liệu cũng cung cấp nhiều dạng lam mờ hoặc nhiễu khác nhau như bicubic, motion blur và noise, phù hợp để đánh giá khả năng khôi phục ảnh của các mô hình super-resolution trong nhiều điều kiện đầu vào.
+
+\subsection{Chỉ số đánh giá}
+\label{sec:metrics}
+
+Việc lựa chọn chỉ số đánh giá phù hợp đóng vai trò quan trọng trong việc đánh giá khách quan chất lượng của các mô hình super-resolution. Các chỉ số đánh giá có thể được phân thành hai nhóm chính: \textbf{full-reference metrics} (đòi hỏi ảnh ground truth để so sánh) và \textbf{no-reference metrics} (đánh giá chất lượng ảnh mà không cần ảnh tham chiếu). Sự kết hợp giữa hai nhóm này giúp đánh giá toàn diện cả về độ chính xác định lượng lẫn chất lượng cảm nhận của ảnh tái tạo.
+
+\subsubsection{PSNR (Peak Signal-to-Noise Ratio)}
+
+PSNR là chỉ số đánh giá phổ biến và lâu đời nhất trong bài toán super-resolution. Chỉ số này đo lường tỷ lệ giữa công suất tín hiệu tối đa và công suất nhiễu (sai số), được tính bằng đơn vị decibel (dB). Với ảnh có giá trị pixel trong khoảng $[0, 255]$, PSNR được định nghĩa như sau:
+
+$$
+\text{PSNR} = 10 \cdot \log_{10}\left(\frac{L^2}{\text{MSE}}\right) = 10 \cdot \log_{10}\left(\frac{255^2}{\frac{1}{MN}\sum_{i=1}^{M}\sum_{j=1}^{N}\left(I(i,j) - \hat{I}(i,j)\right)^2}\right)
+$$
+
+Trong đó, $I$ là ảnh ground truth, $\hat{I}$ là ảnh tái tạo, $M \times N$ là kích thước ảnh, và $L = 255$ là giá trị pixel tối đa. MSE (Mean Squared Error) càng nhỏ thì PSNR càng cao, đồng nghĩa với việc ảnh tái tạo gần với ảnh gốc hơn.
+
+\textbf{Ưu điểm:} PSNR có ý nghĩa trực quan, dễ hiểu và dễ tính toán. Đây là chỉ số chuẩn được sử dụng rộng rãi trong hầu hết các nghiên cứu super-resolution, cho phép so sánh công bằng giữa các mô hình khác nhau.
+
+\textbf{Hạn chế:} PSNR đo lường sai số điểm ảnh một cách cục bộ và không phản ánh được cách con người cảm nhận chất lượng ảnh. Hai ảnh có cùng PSNR có thể trông rất khác nhau về mặt thị giác. Hơn nữa, PSNR có xu hướng đánh giá thấp các mô hình sinh (như GAN hoặc diffusion) vốn tạo ra ảnh sắc nét nhưng có sai lệch điểm ảnh lớn hơn so với ground truth.
+
+\subsubsection{SSIM (Structural Similarity Index Measure)}
+
+SSIM (Wang et al., 2004) được thiết kế để khắc phục hạn chế của PSNR bằng cách đánh giá độ tương đồng dựa trên ba yếu tố cấu trúc của ảnh: \textbf{độ sáng} (luminance), \textbf{độ tương phản} (contrast) và \textbf{cấu trúc} (structure). Chỉ số SSIM được tính trên một cửa sổ trượt cục bộ:
+
+$$
+\text{SSIM}(x, y) = \frac{(2\mu_x\mu_y + C_1)(2\sigma_{xy} + C_2)}{(\mu_x^2 + \mu_y^2 + C_1)(\sigma_x^2 + \sigma_y^2 + C_2)}
+$$
+
+Trong đó, $\mu_x, \mu_y$ là giá trị trung bình, $\sigma_x^2, \sigma_y^2$ là phương sai, $\sigma_{xy}$ là hiệp phương sai của hai cửa sổ ảnh, còn $C_1, C_2$ là các hằng số ổn định để tránh chia cho zero. Giá trị SSIM nằm trong khoảng $[-1, 1]$, trong đó $1$ biểu thị hai ảnh hoàn toàn giống nhau.
+
+\textbf{Ưu điểm:} SSIM mô phỏng tốt hơn cách con người cảm nhận chất lượng ảnh so với PSNR, vì nó tập trung vào cấu trúc thay vì sai lệch điểm ảnh tuyệt đối. Chỉ số này nhạy với sự thay đổi về cấu trúc, biên dạng và kết cấu — những yếu tố quan trọng đối với chất lượng thị giác.
+
+\textbf{Hạn chế:} SSIM vẫn được tính trên các cửa sổ cục bộ, nên có thể bỏ sót các lỗi cấu trúc ở phạm vi rộng hơn. Ngoài ra, giống như PSNR, SSIM cũng có thể không phản ánh đầy đủ chất lượng cảm nhận của các mô hình sinh tạo ra chi tiết tự nhiên nhưng khác biệt so với ground truth.
+
+\subsubsection{LPIPS (Learned Perceptual Image Patch Similarity)}
+
+LPIPS (Zhang et al., 2018) là một chỉ số đánh giá hiện đại dựa trên học sâu, được thiết kế để đo lường khoảng cách cảm nhận giữa hai ảnh trong không gian đặc trưng của mạng nơ-ron đã huấn luyện trước. Khác với PSNR và SSIM tính toán trực tiếp trên không gian điểm ảnh, LPIPS so sánh các đặc trưng cấp cao được trích xuất từ nhiều tầng của mạng VGG hoặc AlexNet.
+
+$$
+\text{LPIPS}(x, y) = \sum_{l} \frac{1}{H_l W_l} \sum_{h,w} \|w_l \odot (\hat{y}_{hw}^l - \hat{y}_0^l)\|_2^2
+$$
+
+Trong đó, $\hat{y}^l$ là đặc trưng chuẩn hóa tại tầng $l$ của mạng, $w_l$ là trọng số học được, và $\odot$ là phép nhân theo phần tử. Giá trị LPIPS càng nhỏ biểu thị hai ảnh càng giống nhau về mặt cảm nhận.
+
+\textbf{Ưu điểm:} LPIPS tương quan tốt hơn với đánh giá của con người so với PSNR và SSIM, đặc biệt trong việc phát hiện sự khác biệt về kết cấu, phong cách và chi tiết thị giác. Đây là chỉ số đặc biệt hữu ích khi đánh giá các mô hình sinh (GAN, diffusion) vì nó có thể phân biệt giữa ``ảnh tự nhiên nhưng khác ground truth'' và ``ảnh méo mó không tự nhiên''.
+
+\textbf{Hạn chế:} LPIPS phụ thuộc vào mạng đặc trưng được sử dụng làm backbone, nên kết quả có thể thay đổi khi thay đổi backbone. Ngoài ra, LPIPS vẫn là chỉ số full-reference, tức là vẫn cần ảnh ground truth để so sánh.
+
+\subsubsection{NIQE (Natural Image Quality Evaluator)}
+
+NIQE (Mittal et al., 2013) là một chỉ số đánh giá chất lượng ảnh \textbf{không cần ảnh tham chiếu} (no-reference/blind). Ý tưởng cốt lõi của NIQE là xây dựng một mô hình thống kê của ảnh tự nhiên ``chất lượng cao'' dựa trên các đặc trưng BIIVIQ (Blind Image Quality Based on Natural Scene Statistics), sau đó đo lường khoảng cách giữa đặc trưng của ảnh cần đánh giá với mô hình này.
+
+$$
+\text{NIQE} = \sqrt{(\mu_1 - \mu_2)^T \left(\frac{\Sigma_1 + \Sigma_2}{2}\right)^{-1} (\mu_1 - \mu_2)}
+$$
+
+Trong đó, $\mu_1, \Sigma_1$ là vector trung bình và ma trận hiệp phương sai của đặc trưng ảnh cần đánh giá, còn $\mu_2, \Sigma_2$ là tham số của mô hình ảnh tự nhiên đã được huấn luyện trước trên tập ảnh chất lượng cao. Giá trị NIQE càng thấp biểu thị ảnh càng gần với phân bố của ảnh tự nhiên, tức chất lượng càng cao.
+
+\textbf{Ưu điểm:} NIQE không yêu cầu ảnh ground truth, nên rất phù hợp cho các tình huống thực tế khi không có ảnh tham chiếu. Chỉ số này dựa trên thống kê scene tự nhiên, do đó có khả năng phát hiện các hiện tượng không tự nhiên như lỗi khối, ringing hoặc hallucination.
+
+\textbf{Hạn chế:} NIQE giả định rằng ảnh tự nhiên tuân theo một phân bố Gaussian đa biến, điều này có thể không chính xác với mọi loại ảnh. Hơn nữa, NIQE có thể bị ảnh hưởng bởi nội dung ảnh — một ảnh có nội dung phức tạp có thể bị đánh giá thấp hơn so với ảnh có nội dung đơn giản, ngay cả khi chất lượng tái tạo như nhau.
+
+\subsubsection{MUSIQ (Multi-Scale Image Quality Transformer)}
+
+MUSIQ (Ke et al., 2021) là một mô hình đánh giá chất lượng ảnh hiện đại dựa trên kiến trúc Transformer, được thiết kế để xử lý ảnh có kích thước đa dạng mà không cần chia thành các patch cố định. Khác với các phương pháp truyền thống thường yêu cầu ảnh đầu vào có kích thước cố định, MUSIQ sử dụng cơ chế hash-based 2D spatial embedding để mã hóa vị trí không gian ở nhiều tỉ lệ, kết hợp với kiến trúc Transformer đa tỉ lệ.
+
+Kiến trúc của MUSIQ gồm ba thành phần chính:
+\begin{itemize}
+\item \textbf{Multi-scale image representation:} Ảnh đầu vào được chuyển đổi thành biểu diễn đa tỉ lệ thông qua các phép pooling ở nhiều mức resolution khác nhau.
+\item \textbf{Hash-based 2D spatial embedding:} Sử dụng hàm băm để mã hóa vị trí không gian, cho phép mô hình xử lý ảnh có kích thước bất kỳ mà không cần resize hoặc chia patch.
+\item \textbf{Scale embedding:} Mỗi tỉ lệ được gán một embedding riêng, giúp mô hình phân biệt thông tin từ các cấp độ khác nhau.
+\end{itemize}
+
+Đầu ra của MUSIQ là một điểm số chất lượng ảnh (quality score) liên tục, được huấn luyện trên các tập dữ liệu đánh giá chất lượng ảnh như KonIQ-10k và SPAQ. Giá trị MUSIQ càng cao biểu thị chất lượng ảnh càng tốt.
+
+\textbf{Ưu điểm:} MUSIQ có khả năng xử ảnh có kích thước đa dạng, tương quan tốt với đánh giá của con người, và có thể bắt được các đặc trưng chất lượng cấp cao mà các chỉ số truyền thống bỏ sót. Kiến trúc Transformer giúp mô hình nắm bắt được mối quan hệ toàn cục trong ảnh.
+
+\textbf{Hạn chế:} MUSIQ là một mô hình học sâu, nên đòi hỏi tài nguyên tính toán lớn hơn so với các chỉ số truyền thống. Kết quả cũng có thể bị ảnh hưởng bởi bias trong dữ liệu huấn luyện.
+
+\subsubsection{CLIPIQA}
+
+CLIPIQA (Wang et al., 2023) là một phương pháp đánh giá chất lượng ảnh tiên tiến, khai thác khả năng biểu diễn ngôn ngữ-đa phương tiện của mô hình CLIP (Contrastive Language-Image Pre-training). Ý tưởng cốt lõi là sử dụng không gian embedding chung giữa hình ảnh và văn bản của CLIP để đánh giá chất lượng ảnh thông qua khoảng cách với các mô tả văn bản về chất lượng.
+
+Phương pháp này hoạt động bằng cách so sánh embedding của ảnh cần đánh giá với các embedding của các prompt văn bản mô tả các mức chất lượng khác nhau (ví dụ: ``high quality photo'', ``low quality photo'', ``blurry image'', ``sharp image''). Điểm số chất lượng được tính dựa trên sự tương đồng cosine giữa embedding ảnh và các embedding văn bản.
+
+\textbf{Ưu điểm:} CLIPIQA tận dụng kiến thức đa phương tiện phong phú từ CLIP, cho phép đánh giá chất lượng ảnh một cách linh hoạt và robust hơn. Phương pháp này không bị giới hạn bởi các đặc trưng thủ công và có thể thích nghi với nhiều loại ảnh và phong cách khác nhau. Hơn nữa, CLIPIQA có thể cung cấp các đánh giá ngữ nghĩa về chất lượng (ví dụ: ``sắc nét'', ``tự nhiên'', ``mờ'') thay vì chỉ là một con số.
+
+\textbf{Hạn chế:} CLIPIQA phụ thuộc vào chất lượng của mô hình CLIP backbone, và kết quả có thể thay đổi khi sử dụng các phiên bản CLIP khác nhau. Ngoài ra, phương pháp này tương đối mới nên chưa được kiểm chứng rộng rãi như các chỉ số truyền thống.
+
+\subsubsection{Tổng hợp các chỉ số đánh giá}
+
+Bảng~\ref{tab:metrics-summary} tóm tắt sáu chỉ số đánh giá được sử dụng trong thực nghiệm này.
+
+\begin{table}[H]
+\centering
+\caption{Tổng hợp các chỉ số đánh giá sử dụng trong thực nghiệm.}
+\label{tab:metrics-summary}
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Chỉ số} & \textbf{Loại} & \textbf{Nguyên lý} & \textbf{Hướng tối ưu} \\ \hline
+PSNR & Full-reference & Sai số điểm ảnh (MSE) & Càng cao \\ \hline
+SSIM & Full-reference & Cấu trúc (luminance, contrast, structure) & Càng cao \\ \hline
+LPIPS & Full-reference & Khoảng cách đặc trưng VGG/AlexNet & Càng thấp \\ \hline
+NIQE & No-reference & Thống kê scene tự nhiên (NSS) & Càng thấp \\ \hline
+MUSIQ & No-reference & Multi-scale Transformer & Càng cao \\ \hline
+CLIPIQA & No-reference & CLIP embedding similarity & Càng cao \\ \hline
+\end{tabular}
+\end{table}
+
+Sự kết hợp giữa các chỉ số full-reference (PSNR, SSIM, LPIPS) và no-reference (NIQE, MUSIQ, CLIPIQA) cho phép đánh giá toàn diện: nhóm đầu đo lường độ chính xác so với ground truth, còn nhóm sau đánh giá chất lượng cảm nhận và tính tự nhiên của ảnh mà không phụ thuộc vào ảnh tham chiếu. Điều này đặc biệt quan trọng khi so sánh các mô hình có bản chất khác nhau, chẳng hạn giữa mô hình regression-based (tối ưu PSNR/SSIM) và mô hình sinh (tối ưu chất lượng thị giác, có thể hi sinh PSNR).
+
+\subsection{Kết quả đạt được}
+
+Bảng~\ref{tab:experiment-results} trình bày kết quả đánh giá các mô hình super-resolution trên tập DIV2k theo sáu chỉ số đã mô tả ở trên. Trong đó, PSNR, SSIM, MUSIQ và CLIPIQA có giá trị càng cao càng tốt; ngược lại, LPIPS và NIQE có giá trị càng thấp càng tốt.
+
+\begin{table}[H]
+\centering
+\caption{Kết quả đánh giá các mô hình super-resolution.}
+\label{tab:experiment-results}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Model} & \textbf{PSNR} & \textbf{SSIM} & \textbf{LPIPS} & \textbf{NIQE} & \textbf{MUSIQ} & \textbf{CLIPIQA} \\ \hline
+SRCNN & 10.7194 & 0.4620 & 0.7672 & 9.5702 & 26.0934 & 0.3963 \\ \hline
+SRGAN & 22.9971 & 0.6310 & 0.4039 & 4.3791 & 45.0816 & 0.3499 \\ \hline
+SwinIR &  &  &  &  &  &  \\ \hline
+SR3 &  &  &  &  &  &  \\ \hline
+\end{tabular}
+\end{table}
+
+\section{Nhận xét và kết luận}

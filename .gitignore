@@ -23,3 +23,6 @@ weights/
 .venv/
 venv/
 .env
+
+# trained checkpoints are too large for git (SR3 last.pth ~758MB)
+experiments*/**/*.pth

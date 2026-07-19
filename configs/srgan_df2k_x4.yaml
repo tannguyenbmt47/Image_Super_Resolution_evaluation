@@ -14,21 +14,21 @@ model:
     num_features: 64
     num_blocks: 16          # SRResNet: 16 residual blocks
     perceptual_layer: relu5_4
-    perceptual_weight: 1.0e-3
+    perceptual_weight: 6.0e-3  # paper: VGG54 content rescale 1/12.75^2
     adversarial_weight: 1.0e-3
     loss: l2                  # pixel loss (paper uses MSE = l2)
 
 train:
-  epochs: 1000              # cap cao; early stopping sẽ tự dừng khi hội tụ
-  batch_size: 128
-  num_workers: 4
+  epochs: 6                 # 6 epoch x 30581 tiles ~ ngân sách 50 epoch x 3450 ảnh gốc
+  batch_size: 16            # 128 OOM trên 8GB (VGG19 perceptual + discriminator)
+  num_workers: 8
   loss: l2                  # pixel loss for build_loss (l2 = MSE, per paper)
   perceptual_weight: 0.0    # not used (SRGAN handles its own perceptual)
   lr: 1.0e-4                # generator LR
   d_lr: 1.0e-4              # discriminator LR
-  lr_step: 200
+  lr_step: 3                # giảm LR một lần ở giữa run (6 epoch)
   lr_gamma: 0.5
-  val_every: 10
+  val_every: 1
   early_stop_patience: 3    # dừng nếu lpips không cải thiện sau 3 lần validation
   early_stop_metric: lpips
   discriminator:
@@ -39,23 +39,21 @@ train:
 train_dataset:
   name: DIV2K
   args:
-    hr_dir:
-      - data/DIV2K/DIV2K_train_HR
-      - data/Flickr2K/Flickr2K_HR     # optional; skipped if missing
+    hr_dir: data/DF2K_sub         # tiles 480x480 cắt sẵn (scripts/extract_subimages.py)
     scale: 4
-    patch_size: 128
+    patch_size: 96            # paper: HR patch 96 (LR 24)
     pre_upscale: false
     degradation: bicubic
     augment: true
-    repeat: 20
+    repeat: 1                 # 1 epoch = 1 lượt qua 30581 tiles
 
 val_datasets:
-  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false } }
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false, max_hr: 256 } }
 
 val_metrics: [lpips, psnr, ssim]
 
 test_datasets:
-  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false } }
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false, max_hr: 256 } }
 
 metrics:
   - { name: psnr,  args: { crop: 4, y_channel: true } }

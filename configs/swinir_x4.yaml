@@ -18,7 +18,7 @@ model:
   args: { scale: 4 }
 
 test_datasets:
-  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false } }
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false, max_hr: 256 } }
 
 metrics:
   - { name: psnr,  args: { crop: 4, y_channel: true } }

@@ -25,7 +25,8 @@ class Benchmark(Dataset):
     also DIV2K-Val (point ``hr_dir`` at DIV2K_valid_HR)."""
 
     def __init__(self, hr_dir: str, scale: int = 4, pre_upscale: bool = False,
-                 degradation: str = "bicubic", max_hr: int = 0, name: str = "benchmark"):
+                 degradation: str = "bicubic", max_hr: int = 0, limit: int = 0,
+                 name: str = "benchmark"):
         self.hr_dir = Path(hr_dir)
         self.scale = scale
         self.pre_upscale = pre_upscale
@@ -35,6 +36,8 @@ class Benchmark(Dataset):
         self.max_hr = max_hr
         self.name = name
         self.files = sorted(p for p in self.hr_dir.iterdir() if p.suffix.lower() in _EXTS)
+        if limit > 0:  # first-N subset (cheap in-training validation for diffusion)
+            self.files = self.files[:limit]
         if not self.files:
             raise FileNotFoundError(f"No images found in {self.hr_dir}")
 

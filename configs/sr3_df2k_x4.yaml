@@ -19,31 +19,31 @@ model:
     ddim_eta: 0.0
 
 train:
-  epochs: 2000              # cap cao; early stopping sẽ tự dừng khi hội tụ
-  batch_size: 3            # ~3.5GB on 8GB GPU (half-GPU budget); raise if you have more VRAM
-  num_workers: 4
+  epochs: 6                 # 6 epoch x 30581 tiles ~ ngân sách 50 epoch x 3450 ảnh gốc
+  batch_size: 6            # AMP bf16, đo 5.07GB (trần 6GB)
+  num_workers: 8
+  amp: true               # bf16 autocast, ~1.5-2x nhanh hơn tren RTX 4060
   lr: 1.0e-4
-  lr_step: 600
+  lr_step: 3                # giảm LR một lần ở giữa run (6 epoch)
   lr_gamma: 0.5
-  val_every: 50                  # sampling is slow; validate sparingly
-  early_stop_patience: 5         # dừng nếu psnr không cải thiện sau 5 lần validation (~250 epoch)
+  val_every: 1                   # val 20 ảnh (limit) ~ 3ph/lần
+  early_stop_patience: 3
   early_stop_metric: psnr
 
 train_dataset:
   name: DIV2K
   args:
-    hr_dir:
-      - data/DIV2K/DIV2K_train_HR
-      - data/Flickr2K/Flickr2K_HR
+    hr_dir: data/DF2K_sub         # tiles 480x480 cắt sẵn (scripts/extract_subimages.py)
     scale: 4
     patch_size: 160              # divisible by 8 = 2**(len(channel_mults)-1)
     pre_upscale: false
     degradation: bicubic
     augment: true
-    repeat: 20
+    repeat: 1                    # 1 epoch = 1 lượt qua 30581 tiles
 
 val_datasets:
-  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, max_hr: 256 } }
+  # limit 20: val trong lúc train chỉ 20 ảnh (~3ph thay vì 15ph); eval cuối vẫn đủ 100
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, max_hr: 256, limit: 20 } }
 
 val_metrics: [psnr, ssim]
 

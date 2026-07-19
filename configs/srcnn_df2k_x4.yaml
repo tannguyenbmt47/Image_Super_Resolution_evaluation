@@ -8,38 +8,36 @@ model:
   args: { scale: 4 }
 
 train:
-  epochs: 1000              # cap cao; early stopping sẽ tự dừng khi hội tụ
-  batch_size: 128
-  num_workers: 2
-  loss: charbonnier
+  epochs: 6                 # 6 epoch x 30581 tiles ~ ngân sách 50 epoch x 3450 ảnh gốc
+  batch_size: 16            # cùng số updates với SRGAN (fair), VRAM không đáng kể
+  num_workers: 8
+  loss: l2                  # paper SRCNN dùng MSE
   perceptual_weight: 0.0
   lr: 1.0e-4
-  lr_step: 200
+  lr_step: 3                # giảm LR một lần ở giữa run (6 epoch)
   lr_gamma: 0.5
-  val_every: 10
-  early_stop_patience: 10   # dừng nếu psnr không cải thiện sau 10 lần validation
+  val_every: 1
+  early_stop_patience: 3   # dừng nếu psnr không cải thiện sau 10 lần validation
   early_stop_metric: psnr
 
 train_dataset:
   name: DIV2K
   args:
-    hr_dir:
-      - data/DIV2K/DIV2K_train_HR
-      - data/Flickr2K/Flickr2K_HR     # optional; skipped if missing
+    hr_dir: data/DF2K_sub         # tiles 480x480 cắt sẵn (scripts/extract_subimages.py)
     scale: 4
     patch_size: 128
     pre_upscale: true
     degradation: bicubic
     augment: true
-    repeat: 20
+    repeat: 1                 # 1 epoch = 1 lượt qua 30581 tiles
 
 val_datasets:
-  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: true } }
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: true, max_hr: 256 } }
 
 val_metrics: [psnr, ssim]
 
 test_datasets:
-  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: true } }
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: true, max_hr: 256 } }
 
 metrics:
   - { name: psnr,  args: { crop: 4, y_channel: true } }

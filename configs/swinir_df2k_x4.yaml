@@ -1,0 +1,65 @@
+name: swinir_df2k_x4
+
+# Train SwinIR from scratch on DF2K under the SAME 20-epoch budget as the other
+# models (fair peer). The classical SwinIR-M (11.9M params) is too large to train
+# meaningfully in this budget on an 8GB GPU, so this uses the lightweight SwinIR
+# preset (~0.9M params) which fits and can actually learn in 20 epochs.
+#
+# For the published SOTA reference (authors' fully-trained SwinIR-M weights), use
+# configs/swinir_x4.yaml (evaluation-only) instead.
+#
+# SwinIR upscales internally, so datasets use pre_upscale: false. Eval on the
+# shared DIV2K-Val 256-crop protocol (max_hr: 256), same as the other models.
+
+model:
+  name: SwinIR
+  args:
+    scale: 4
+    img_size: 64              # paper: LR patch 64
+    window_size: 8
+    embed_dim: 60             # light preset (SwinIR-M uses 180)
+    depths: [6, 6, 6, 6]
+    num_heads: [6, 6, 6, 6]
+    mlp_ratio: 2
+    upsampler: pixelshuffledirect
+
+train:
+  epochs: 6                 # 6 epoch x 30581 tiles ~ ngân sách 50 epoch x 3450 ảnh gốc
+  batch_size: 12            # AMP bf16, đo 4.98GB (trần 6GB)
+  num_workers: 8
+  amp: true               # bf16 autocast, ~1.5-2x nhanh hơn tren RTX 4060
+  loss: l1                  # paper SwinIR dùng L1
+  perceptual_weight: 0.0
+  lr: 2.0e-4
+  lr_step: 3                # giảm LR một lần ở giữa run (6 epoch)
+  lr_gamma: 0.5
+  val_every: 1
+  early_stop_patience: 3
+  early_stop_metric: psnr
+
+train_dataset:
+  name: DIV2K
+  args:
+    hr_dir: data/DF2K_sub         # tiles 480x480 cắt sẵn (scripts/extract_subimages.py)
+    scale: 4
+    patch_size: 256           # paper: HR patch 256 -> LR 64 (khớp img_size)
+    pre_upscale: false
+    degradation: bicubic
+    augment: true
+    repeat: 1                 # 1 epoch = 1 lượt qua 30581 tiles
+
+val_datasets:
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false, max_hr: 256 } }
+
+val_metrics: [psnr, ssim]
+
+test_datasets:
+  - { name: Benchmark, label: DIV2K-Val, args: { hr_dir: data/DIV2K/DIV2K_valid_HR, scale: 4, pre_upscale: false, max_hr: 256 } }
+
+metrics:
+  - { name: psnr,  args: { crop: 4, y_channel: true } }
+  - { name: ssim,  args: { crop: 4, y_channel: true } }
+  - { name: lpips, args: { net: alex } }
+  - niqe
+  - musiq
+  - clipiqa
